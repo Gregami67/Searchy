@@ -1,0 +1,7 @@
+services:
+  valkey:
+    image: valkey/valkey-bundle:9.0-alpine
+    ports:
+      - 6379:6379
+    environment:
+      - VALKEY_EXTRA_FLAGS=--save 60 1 --loglevel warning
