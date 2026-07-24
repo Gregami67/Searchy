@@ -16,10 +16,10 @@
         .search-btn:hover { background: #3a8eef; }
         .search-btn:disabled { opacity: 0.5; cursor: wait; }
         .gallery { padding: 20px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; max-width: 1400px; margin: 0 auto; }
-        .gallery-item { aspect-ratio: 1; border-radius: 8px; overflow: hidden; background: #2a2a2a; transition: transform 0.2s; }
+        .gallery-item { border-radius: 8px; overflow: hidden; background: #2a2a2a; transition: transform 0.2s; display: flex; justify-content: center; align-items: center; }
         .gallery-item:hover { transform: scale(1.03); }
-        .gallery-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        .gallery-item .caption { padding: 8px 12px; font-size: 13px; color: #999; word-break: break-all; }
+        .gallery-item img { width: 100%; height: auto; display: block; object-fit: contain; }
+        #loader { text-align: center; padding: 40px; color: #666; font-size: 14px; }
         .pagination { display: flex; justify-content: center; align-items: center; gap: 16px; padding: 40px 20px; max-width: 1400px; margin: 0 auto; }
         .page-btn { padding: 8px 20px; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; transition: all 0.2s; background: #2a2a2a; color: #e0e0e0; text-decoration: none; }
         .page-btn:hover:not(:disabled) { background: #3a3a3a; }
@@ -37,53 +37,51 @@
     </div>
 
     <div id="results"></div>
+    <div id="loader" style="display:none;">Loading...</div>
 
     <script>
         const resultsEl = document.getElementById('results');
+        const loader = document.getElementById('loader');
         const form = document.getElementById('searchForm');
         const input = document.getElementById('searchInput');
         let currentQuery = '';
         let currentPage = 1;
-        let total = 0;
+        let hasMore = false;
+        let isLoading = false;
 
-        function showResults(results) {
+        function showEmptyMessage(query) {
+            resultsEl.style.display = 'block';
+            resultsEl.innerHTML = '<p style="text-align:center; padding:40px; color:#666;">No results found for "' + query + '"</p>';
+            hasMore = false;
+        }
+
+        function appendGallery(results) {
             resultsEl.style.display = 'block';
             if (results.image_paths.length === 0) {
-                resultsEl.innerHTML = '<p style="text-align:center; padding:40px; color:#666;">No results found for "' + results.search_query + '"</p>';
+                hasMore = false;
                 return;
             }
 
-            let html = '<div class="gallery">';
+            let html = '';
             for (const name of results.image_paths) {
                 html += '<div class="gallery-item">'
                     + '<img src="/images/' + encodeURIComponent(name) + '" alt="' + name + '">'
                     + '</div>';
             }
-            html += '</div>';
 
-            if (results.has_prev || results.has_next) {
-                html += '<div class="pagination">';
-                if (results.has_prev) {
-                    html += '<button class="page-btn" onclick="loadPage(' + (results.page - 1) + ')">&larr; Previous</button>';
-                } else {
-                    html += '<button class="page-btn" disabled>&larr; Previous</button>';
-                }
-                html += '<span class="page-info">Page ' + results.page + '</span>';
-                if (results.has_next) {
-                    html += '<button class="page-btn" onclick="loadPage(' + (results.page + 1) + ')">Next &rarr;</button>';
-                } else {
-                    html += '<button class="page-btn" disabled>Next &rarr;</button>';
-                }
-                html += '</div>';
+            if (!resultsEl.querySelector('.gallery')) {
+                resultsEl.innerHTML = '<div class="gallery"></div>';
             }
-
-            resultsEl.innerHTML = html;
+            const gallery = resultsEl.querySelector('.gallery');
+            gallery.insertAdjacentHTML('beforeend', html);
+            hasMore = results.has_next;
         }
 
         async function doSearch(query, page) {
             input.value = query;
             currentQuery = query;
             currentPage = page;
+
             const btn = document.getElementById('searchBtn');
             btn.disabled = true;
             btn.textContent = 'Searching...';
@@ -95,23 +93,68 @@
                     body: JSON.stringify({q: query, page: page})
                 });
                 const data = await res.json();
-                showResults(data);
+                if (page === 1) {
+                    hasMore = data.has_next;
+                    if (!hasMore && data.total <= 0) {
+                        showEmptyMessage(data.search_query || query);
+                    }
+                    appendGallery(data);
+                } else {
+                    hasMore = false;
+                }
             } finally {
                 btn.disabled = false;
                 btn.textContent = 'Search';
             }
         }
 
-        function loadPage(page) {
-            doSearch(currentQuery, page);
+        function showEmptyMessage(query) {
+            resultsEl.style.display = 'block';
+            resultsEl.innerHTML = '<p style="text-align:center; padding:40px; color:#666;">No results found for "' + query + '"</p>';
+            hasMore = false;
         }
+
+        async function loadMore() {
+            if (isLoading || !hasMore) return;
+            isLoading = true;
+            loader.style.display = 'block';
+
+            currentPage++;
+            try {
+                const res = await fetch('/api/search', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({q: currentQuery, page: currentPage})
+                });
+                const data = await res.json();
+                appendGallery(data);
+            } finally {
+                isLoading = false;
+                if (!hasMore) loader.style.display = 'none';
+            }
+        }
+
+        // Infinite scroll using IntersectionObserver
+        let sentinel = document.createElement('div');
+        sentinel.id = 'scroll-sentinel';
+        sentinel.style.height = '1px';
+        document.body.appendChild(sentinel);
+
+        const observer = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting && hasMore) {
+                loadMore();
+            }
+        }, { rootMargin: '400px' });
+        observer.observe(sentinel);
 
         form.addEventListener('submit', (e) => {
             e.preventDefault();
             const q = input.value.trim();
-            if (q) {
-                doSearch(q, 1);
-            }
+            if (!q) return;
+            currentPage = 1;
+            hasMore = true;
+            resultsEl.innerHTML = '<div class="gallery"></div>';
+            doSearch(q, 1);
         });
 
         let debounceTimer;
@@ -119,8 +162,12 @@
             clearTimeout(debounceTimer);
             const q = input.value.trim();
             if (!q) return;
-            // only search after user stops typing, but always search on first keystroke if not same query
-            debounceTimer = setTimeout(() => doSearch(q, 1), 500);
+            debounceTimer = setTimeout(() => {
+                currentPage = 1;
+                hasMore = true;
+                resultsEl.innerHTML = '<div class="gallery"></div>';
+                doSearch(q, 1);
+            }, 500);
         });
     </script>
 </body>
