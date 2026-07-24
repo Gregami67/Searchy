@@ -3,7 +3,9 @@ import torch.nn.functional as F
 from PIL import Image
 from transformers import CLIPProcessor, CLIPModel
 
-model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
+device = torch.device("cpu")
+
+model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
 processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 
 images = []
