@@ -1,15 +1,24 @@
+import os
+
 import torch
 import torch.nn.functional as F
 from PIL import Image
-from transformers import CLIPProcessor, CLIPModel
+from transformers import CLIPModel, CLIPProcessor
 
 device = torch.device("cpu")
 
 model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
 processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 
-images = []
-query = "haocheng"
+image_dir = "./images"
+valid_extensions = (".png", ".jpg", ".jpeg", ".webp", ".bmp")
+
+images = [
+    Image.open(os.path.join(image_dir, f))
+    for f in os.listdir(image_dir)
+    if f.lower().endswith(valid_extensions)
+]
+query = "cat"
 
 inputs = processor(text=query, images=images, return_tensors="pt", padding=True)
 
