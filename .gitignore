@@ -2,3 +2,4 @@
 .python-version
 images/
 __pycache__
+embeddings.json

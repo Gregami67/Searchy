@@ -1,45 +1,160 @@
+import argparse
+import json
 import os
+import sys
+
 import torch
-import torch.nn.functional as F
 from PIL import Image
 from transformers import CLIPModel, CLIPProcessor
 
-device = torch.device("cpu")
+EMBEDDINGS_FILE = "embeddings.json"
 
-model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
-processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 
-image_dir = "./images"
-valid_extensions = (".png", ".jpg", ".jpeg", ".webp", ".bmp")
+def load_model_and_processor(device=None):
+    if device is None:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
 
-image_paths = [
-    os.path.join(image_dir, f)
-    for f in os.listdir(image_dir)
-    if f.lower().endswith(valid_extensions)
-]
-images = [Image.open(path) for path in image_paths]
+    model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
+    processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 
-query = "potato"
+    return model, processor, device
 
-inputs = processor(text=query, images=images, return_tensors="pt", padding=True)
 
-with torch.inference_mode():
-    outputs = model(**inputs)
+def write_embeddings_to_file(paths, embeds):
+    data = {
+        "paths": paths,
+        "embeddings": [e.tolist() for e in embeds],
+    }
+    with open(EMBEDDINGS_FILE, "w") as fout:
+        json.dump(data, fout)
 
-image_embeds = outputs.image_embeds
-text_embeds = outputs.text_embeds
 
-norm_image_embeds = F.normalize(image_embeds, dim=-1)
-norm_text_embeds = F.normalize(text_embeds, dim=-1)
+def load_embeddings_from_file():
+    if not os.path.exists(EMBEDDINGS_FILE):
+        print(f"Error: '{EMBEDDINGS_FILE}' not found. Run 'vectorize' first.")
+        sys.exit(1)
 
-# Get similarity scores as a 1D tensor
-similarities = (norm_image_embeds @ norm_text_embeds.T).squeeze()
+    with open(EMBEDDINGS_FILE) as fin:
+        data = json.load(fin)
 
-# Zip paths with float similarity scores and sort high-to-low
-results = sorted(
-    zip(image_paths, similarities.tolist()), key=lambda pair: pair[1], reverse=True
-)
+    return data["paths"], torch.tensor(data["embeddings"])
 
-# Print formatted results
-for path, score in results:
-    print(f"{score:.4f} -> {path}")
+
+def vectorize(images, processor, model, device):
+    inputs = processor(images=images, return_tensors="pt")
+    pixel_values = inputs["pixel_values"].to(device)
+
+    with torch.inference_mode():
+        outputs = model.get_image_features(pixel_values=pixel_values)
+
+    embeds = outputs.pooler_output
+
+    embeds = torch.nn.functional.normalize(embeds, dim=-1)
+    return embeds
+
+
+def get_image_paths(image_dir="./images"):
+    valid_extensions = (".png", ".jpg", ".jpeg", ".webp", ".bmp")
+
+    if not os.path.exists(image_dir):
+        print(f"Error: Image directory '{image_dir}' does not exist.")
+        sys.exit(1)
+
+    return sorted(
+        [
+            os.path.join(image_dir, f)
+            for f in os.listdir(image_dir)
+            if f.lower().endswith(valid_extensions)
+        ]
+    )
+
+
+def search_embeddings(query, processor, model, device):
+    inputs = processor(text=[query], return_tensors="pt")
+
+    with torch.inference_mode():
+        outputs = model.get_text_features(
+            input_ids=inputs["input_ids"].to(device),
+            attention_mask=inputs["attention_mask"].to(device),
+        )
+
+    text_embeds = torch.nn.functional.normalize(outputs.pooler_output, dim=-1)
+
+    paths, image_embeds = load_embeddings_from_file()
+
+    similarities = (image_embeds @ text_embeds.T).squeeze()
+    results = sorted(
+        zip(paths, similarities.tolist()), key=lambda pair: pair[1], reverse=True
+    )
+    return results
+
+
+def vectorize_images_in_memory(images, query, processor, model, device):
+    inputs = processor(text=[query], images=images, return_tensors="pt").to(device)
+
+    with torch.inference_mode():
+        outputs = model(**inputs)
+
+    image_embeds = torch.nn.functional.normalize(outputs.image_embeds, dim=-1)
+    text_embeds = torch.nn.functional.normalize(outputs.text_embeds, dim=-1)
+    similarities = (image_embeds @ text_embeds.T).squeeze()
+
+    return similarities.tolist()
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="CLIP-based image search and vectorization"
+    )
+    parser.add_argument(
+        "action",
+        choices=["vectorize", "search"],
+        help="Action to perform: vectorize images or search by query",
+    )
+    parser.add_argument(
+        "--query",
+        type=str,
+        default=None,
+        help="Search query text (required for 'search' action)",
+    )
+    parser.add_argument(
+        "--image-dir",
+        type=str,
+        default="./images",
+        help="Directory containing images (used only for 'vectorize')",
+    )
+
+    args = parser.parse_args()
+
+    if not os.path.exists(EMBEDDINGS_FILE) and args.action == "search":
+        print(
+            f"Error: '{EMBEDDINGS_FILE}' not found. Run 'vectorize' first to generate embeddings."
+        )
+        sys.exit(1)
+
+    model, processor, device = load_model_and_processor("cpu")
+
+    if args.action == "vectorize":
+        image_paths = get_image_paths(args.image_dir)
+        images = [Image.open(path) for path in image_paths]
+
+        print("Vectorizing images...")
+        image_embeds = vectorize(images, processor, model, device)
+
+        write_embeddings_to_file(image_paths, image_embeds)
+        print(f"Saved {len(image_paths)} embeddings to '{EMBEDDINGS_FILE}'.")
+
+    elif args.action == "search":
+        if not args.query:
+            print("Error: --query is required for 'search' action.")
+            sys.exit(1)
+
+        results = search_embeddings(args.query, processor, model, device)
+
+        print(f"Results for '{args.query}':\n")
+        for path, score in results:
+            print(f"{score:.4f} -> {path}")
+
+
+if __name__ == "__main__":
+    main()
