@@ -1,0 +1,25 @@
+import torch
+import torch.nn.functional as F
+from PIL import Image
+from transformers import CLIPProcessor, CLIPModel
+
+model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
+processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+
+images = []
+query = "haocheng"
+
+inputs = processor(text=query, images=images, return_tensors="pt", padding=True)
+
+with torch.inference_mode():
+    outputs = model(**inputs)
+
+image_embeds = outputs.image_embeds
+text_embeds = outputs.text_embeds
+
+norm_image_embeds = F.normalize(image_embeds, dim=-1)
+norm_text_embeds = F.normalize(text_embeds, dim=-1)
+
+similarities = norm_image_embeds @ norm_text_embeds.T
+
+print(similarities)
