@@ -1,4 +1,6 @@
-from flask import Flask, request
+import os as _os
+
+from flask import Flask, abort, render_template, request, send_file
 
 from ai import load_model_and_processor, search_embeddings
 
@@ -6,15 +8,30 @@ app = Flask(__name__)
 model, processor, device = load_model_and_processor("cpu")
 
 
-@app.route("/search", methods=["POST"])
-def search():
-    data = request.get_json()
-    query = data.get("query")
+@app.route("/")
+def index():
+    query = request.args.get("q", "").strip()
+    image_paths = []
 
-    if not query:
-        return "query field required", 400
+    if query:
+        result = search_embeddings(query, processor, model, device)
+        image_paths = [(path, _os.path.basename(path)) for path, _ in result]
 
-    result = search_embeddings(query, processor, model, device)
-    image_paths = [path for path, _ in result]
+    return render_template(
+        "index.html",
+        search_query=query or None,
+        image_paths=image_paths,
+    )
 
-    return image_paths
+
+@app.route("/images/<path:filename>")
+def serve_image(filename):
+    image_dir = "./images"
+    filepath = _os.path.join(image_dir, _os.path.basename(filename))
+    if not _os.path.abspath(filepath).startswith(_os.path.abspath(image_dir)):
+        abort(403)
+    return send_file(filepath)
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
