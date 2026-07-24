@@ -15,16 +15,14 @@
         .search-btn { padding: 12px 24px; border: none; border-radius: 8px; font-size: 16px; background: #4a9eff; color: white; cursor: pointer; transition: background 0.2s; }
         .search-btn:hover { background: #3a8eef; }
         .search-btn:disabled { opacity: 0.5; cursor: wait; }
-        .gallery { padding: 20px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; max-width: 1400px; margin: 0 auto; }
-        .gallery-item { border-radius: 8px; overflow: hidden; background: #2a2a2a; transition: transform 0.2s; display: flex; justify-content: center; align-items: center; }
-        .gallery-item:hover { transform: scale(1.03); }
-        .gallery-item img { width: 100%; height: auto; display: block; object-fit: contain; }
+        .gallery { padding: 20px; column-count: 5; column-gap: 16px; max-width: 1400px; margin: 0 auto; }
+        .gallery-item { break-inside: avoid; margin-bottom: 16px; }
+        .gallery-item img { width: 100%; display: block; cursor: zoom-in; }
+        .gallery-item:hover { opacity: 0.9; }
+        #viewer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 1000; display: none; cursor: zoom-in; justify-content: center; align-items: center; }
+        #viewer-overlay.active { display: flex; }
+        #viewer-img { max-width: 90vw; max-height: 90vh; object-fit: contain; transition: transform 0.15s ease; user-select: none; -webkit-user-drag: none; margin: auto; }
         #loader { text-align: center; padding: 40px; color: #666; font-size: 14px; }
-        .pagination { display: flex; justify-content: center; align-items: center; gap: 16px; padding: 40px 20px; max-width: 1400px; margin: 0 auto; }
-        .page-btn { padding: 8px 20px; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; transition: all 0.2s; background: #2a2a2a; color: #e0e0e0; text-decoration: none; }
-        .page-btn:hover:not(:disabled) { background: #3a3a3a; }
-        .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-        .page-info { color: #888; font-size: 14px; }
         #results { display: none; }
     </style>
 </head>
@@ -38,6 +36,10 @@
 
     <div id="results"></div>
     <div id="loader" style="display:none;">Loading...</div>
+
+    <div id="viewer-overlay">
+        <img id="viewer-img" src="" alt="">
+    </div>
 
     <script>
         const resultsEl = document.getElementById('results');
@@ -168,6 +170,91 @@
                 resultsEl.innerHTML = '<div class="gallery"></div>';
                 doSearch(q, 1);
             }, 500);
+        });
+
+        // Image viewer with zoom
+        const overlay = document.getElementById('viewer-overlay');
+        const viewerImg = document.getElementById('viewer-img');
+        let viewerZoom = 1;
+        let isDragging = false;
+        let dragStartX, dragStartY, translateX = 0, translateY = 0;
+
+        function openViewer(src) {
+            viewerImg.src = src;
+            overlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            viewerZoom = 1;
+            translateX = 0;
+            translateY = 0;
+            updateViewerTransform();
+        }
+
+        function closeViewer() {
+            overlay.classList.remove('active');
+            document.body.style.overflow = '';
+            viewerZoom = 1;
+            translateX = 0;
+            translateY = 0;
+            updateViewerTransform();
+        }
+
+        function updateViewerTransform() {
+            viewerImg.style.transform = `translate(${translateX}px, ${translateY}px) scale(${viewerZoom})`;
+        }
+
+        document.addEventListener('click', (e) => {
+            // Open viewer on gallery image click
+            if (e.target.closest('.gallery-item img')) {
+                const src = e.target.src;
+                openViewer(src);
+                return;
+            }
+            // Close viewer when clicking overlay background (not image)
+            if (e.target === overlay) {
+                if (viewerZoom > 1) {
+                    viewerZoom = 1;
+                    translateX = 0;
+                    translateY = 0;
+                    updateViewerTransform();
+                } else {
+                    closeViewer();
+                }
+            }
+        });
+
+        document.addEventListener('wheel', (e) => {
+            if (!overlay.classList.contains('active')) return;
+            e.preventDefault();
+            viewerZoom += e.deltaY < 0 ? 0.15 : -0.15;
+            viewerZoom = Math.max(0.3, Math.min(viewerZoom, 10));
+            updateViewerTransform();
+        }, { passive: false });
+
+        document.addEventListener('mousedown', (e) => {
+            if (!overlay.classList.contains('active')) return;
+            if (viewerZoom > 1 && e.target === viewerImg) {
+                isDragging = true;
+                dragStartX = e.clientX - translateX;
+                dragStartY = e.clientY - translateY;
+                overlay.style.cursor = 'grabbing';
+            }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            translateX = e.clientX - dragStartX;
+            translateY = e.clientY - dragStartY;
+            updateViewerTransform();
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+            overlay.style.cursor = 'zoom-in';
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (!overlay.classList.contains('active')) return;
+            if (e.key === 'Escape') closeViewer();
         });
     </script>
 </body>
