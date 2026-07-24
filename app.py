@@ -40,17 +40,30 @@ def load_embeddings_from_file():
     return data["paths"], torch.tensor(data["embeddings"])
 
 
-def vectorize(images, processor, model, device):
-    inputs = processor(images=images, return_tensors="pt")
-    pixel_values = inputs["pixel_values"].to(device)
+def vectorize_batch(image_paths, processor, model, device, batch_size=32):
+    """Vectorize images in batches and ensure file handles are properly closed."""
+    all_embeds = []
 
-    with torch.inference_mode():
-        outputs = model.get_image_features(pixel_values=pixel_values)
+    for i in range(0, len(image_paths), batch_size):
+        batch_paths = image_paths[i : i + batch_size]
+        batch_images = []
 
-    embeds = outputs.pooler_output
+        for path in batch_paths:
+            with Image.open(path) as img:
+                # convert("RGB") loads image data immediately into memory and strips transparency
+                batch_images.append(img.convert("RGB"))
 
-    embeds = torch.nn.functional.normalize(embeds, dim=-1)
-    return embeds
+        inputs = processor(images=batch_images, return_tensors="pt")
+        pixel_values = inputs["pixel_values"].to(device)
+
+        with torch.inference_mode():
+            outputs = model.get_image_features(pixel_values=pixel_values)
+
+        embeds = outputs.pooler_output
+        embeds = torch.nn.functional.normalize(embeds, dim=-1)
+        all_embeds.append(embeds.cpu())
+
+    return torch.cat(all_embeds, dim=0)
 
 
 def get_image_paths(image_dir="./images"):
@@ -89,19 +102,6 @@ def search_embeddings(query, processor, model, device):
     return results
 
 
-def vectorize_images_in_memory(images, query, processor, model, device):
-    inputs = processor(text=[query], images=images, return_tensors="pt").to(device)
-
-    with torch.inference_mode():
-        outputs = model(**inputs)
-
-    image_embeds = torch.nn.functional.normalize(outputs.image_embeds, dim=-1)
-    text_embeds = torch.nn.functional.normalize(outputs.text_embeds, dim=-1)
-    similarities = (image_embeds @ text_embeds.T).squeeze()
-
-    return similarities.tolist()
-
-
 def main():
     parser = argparse.ArgumentParser(
         description="CLIP-based image search and vectorization"
@@ -123,6 +123,12 @@ def main():
         default="./images",
         help="Directory containing images (used only for 'vectorize')",
     )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=32,
+        help="Batch size for vectorizing images",
+    )
 
     args = parser.parse_args()
 
@@ -136,10 +142,14 @@ def main():
 
     if args.action == "vectorize":
         image_paths = get_image_paths(args.image_dir)
-        images = [Image.open(path) for path in image_paths]
+        if not image_paths:
+            print(f"No valid images found in '{args.image_dir}'.")
+            sys.exit(0)
 
-        print("Vectorizing images...")
-        image_embeds = vectorize(images, processor, model, device)
+        print(f"Vectorizing {len(image_paths)} images...")
+        image_embeds = vectorize_batch(
+            image_paths, processor, model, device, batch_size=args.batch_size
+        )
 
         write_embeddings_to_file(image_paths, image_embeds)
         print(f"Saved {len(image_paths)} embeddings to '{EMBEDDINGS_FILE}'.")
@@ -151,9 +161,7 @@ def main():
 
         results = search_embeddings(args.query, processor, model, device)
 
-        print(f"Results for '{args.query}':\n")
-        for path, score in results:
-            print(f"{score:.4f} -> {path}")
+        print("feh ", *[path for path, _ in results[:25]])
 
 
 if __name__ == "__main__":
