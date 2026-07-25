@@ -21,6 +21,7 @@ try:
     print("Created images index")
 except valkey.ResponseError as e:
     if "already exists" in str(e).lower():
+        print("Image index already exists... Skipping")
         pass
     else:
         raise e
