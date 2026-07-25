@@ -7,6 +7,7 @@ import numpy as np
 import torch
 from PIL import Image
 from transformers import CLIPModel, CLIPProcessor
+from valkey.commands.search.query import Query
 
 from db import v
 
@@ -125,6 +126,44 @@ def search_embeddings(query, processor, model, device):
     return results
 
 
+def search_embeddings_db(query, processor, model, device) -> None:
+    inputs = processor(text=[query], return_tensors="pt")
+
+    with torch.inference_mode():
+        outputs = model.get_text_features(
+            input_ids=inputs["input_ids"].to(device),
+            attention_mask=inputs["attention_mask"].to(device),
+        )
+
+    text_embeds = (
+        torch.nn.functional.normalize(outputs.pooler_output, dim=-1)
+        .squeeze(0)
+        .cpu()
+        .numpy()
+        .astype(np.float32)
+    )
+
+    query_vector_bytes = text_embeds.tobytes()
+    raw_count = v.get("image_counter")
+
+    if not raw_count:
+        return None
+
+    num_images = int(raw_count)
+
+    search_query = (
+        Query(f"*=>[KNN {num_images} @image_embed $vec AS vector_distance]")
+        .paging(0, num_images)
+        .return_fields("url_path", "vector_distance")
+    )
+
+    results = v.ft("idx:images").search(
+        search_query, query_params={"vec": query_vector_bytes}
+    )
+
+    return [result.url_path for result in results.docs]
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="CLIP-based image search and vectorization"
@@ -182,9 +221,10 @@ def main():
             print("Error: --query is required for 'search' action.")
             sys.exit(1)
 
-        results = search_embeddings(args.query, processor, model, device)
+        results = search_embeddings_db(args.query, processor, model, device)
+        print(results)
 
-        print("feh ", *[path for path, _ in results[:25]])
+        # print("feh ", *[path for path, _ in results[:25]])
 
 
 if __name__ == "__main__":
