@@ -3,9 +3,12 @@ import json
 import os
 import sys
 
+import numpy as np
 import torch
 from PIL import Image
 from transformers import CLIPModel, CLIPProcessor
+
+from db import v
 
 EMBEDDINGS_FILE = "embeddings.json"
 
@@ -27,6 +30,26 @@ def write_embeddings_to_file(paths, embeds):
     }
     with open(EMBEDDINGS_FILE, "w") as fout:
         json.dump(data, fout)
+
+
+def write_embeddings_to_db(paths, embeds):
+    pipe = v.pipeline()
+    embeds_np = embeds.detach().cpu().numpy().astype(np.float32)
+    end_id = v.incrby("image_counter", len(paths))
+    start_id = end_id - len(paths) + 1
+
+    for i, (p, e) in enumerate(zip(paths, embeds_np)):
+        img_id = start_id + i
+
+        pipe.hset(
+            f"image:{img_id}",
+            mapping={
+                "url_path": p,
+                "image_embed": e.tobytes(),
+            },
+        )
+
+    pipe.execute()
 
 
 def load_embeddings_from_file():
@@ -151,7 +174,7 @@ def main():
             image_paths, processor, model, device, batch_size=args.batch_size
         )
 
-        write_embeddings_to_file(image_paths, image_embeds)
+        write_embeddings_to_db(image_paths, image_embeds)
         print(f"Saved {len(image_paths)} embeddings to '{EMBEDDINGS_FILE}'.")
 
     elif args.action == "search":
