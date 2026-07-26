@@ -10,15 +10,15 @@ from valkey.commands.search.query import Query
 
 from db import v
 
-EMBEDDINGS_FILE = "embeddings.json"
+MODEL_NAME = "openai/clip-vit-base-patch32"
 
 
 def load_model_and_processor(device=None):
     if device is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
-    processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+    model = CLIPModel.from_pretrained(MODEL_NAME).to(device)
+    processor = CLIPProcessor.from_pretrained(MODEL_NAME)
 
     return model, processor, device
 
