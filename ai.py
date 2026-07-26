@@ -1,5 +1,4 @@
 import argparse
-import json
 import os
 import sys
 
@@ -24,15 +23,6 @@ def load_model_and_processor(device=None):
     return model, processor, device
 
 
-def write_embeddings_to_file(paths, embeds):
-    data = {
-        "paths": paths,
-        "embeddings": [e.tolist() for e in embeds],
-    }
-    with open(EMBEDDINGS_FILE, "w") as fout:
-        json.dump(data, fout)
-
-
 def write_embeddings_to_db(paths, embeds):
     pipe = v.pipeline()
     embeds_np = embeds.detach().cpu().numpy().astype(np.float32)
@@ -51,17 +41,6 @@ def write_embeddings_to_db(paths, embeds):
         )
 
     pipe.execute()
-
-
-def load_embeddings_from_file():
-    if not os.path.exists(EMBEDDINGS_FILE):
-        print(f"Error: '{EMBEDDINGS_FILE}' not found. Run 'vectorize' first.")
-        sys.exit(1)
-
-    with open(EMBEDDINGS_FILE) as fin:
-        data = json.load(fin)
-
-    return data["paths"], torch.tensor(data["embeddings"])
 
 
 def vectorize_batch(image_paths, processor, model, device, batch_size=32):
@@ -104,26 +83,6 @@ def get_image_paths(image_dir="./images"):
             if f.lower().endswith(valid_extensions)
         ]
     )
-
-
-def search_embeddings(query, processor, model, device):
-    inputs = processor(text=[query], return_tensors="pt")
-
-    with torch.inference_mode():
-        outputs = model.get_text_features(
-            input_ids=inputs["input_ids"].to(device),
-            attention_mask=inputs["attention_mask"].to(device),
-        )
-
-    text_embeds = torch.nn.functional.normalize(outputs.pooler_output, dim=-1)
-
-    paths, image_embeds = load_embeddings_from_file()
-
-    similarities = (image_embeds @ text_embeds.T).squeeze()
-    results = sorted(
-        zip(paths, similarities.tolist()), key=lambda pair: pair[1], reverse=True
-    )
-    return results
 
 
 def search_embeddings_db(query, processor, model, device) -> None:
