@@ -1,14 +1,14 @@
 import hashlib
-
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import valkey
 
+from searchy.app import Searchy
+
 
 def _get_image_paths(image_dir: str) -> list[Path]:
     path = Path(image_dir)
-    valid_extensions = {".png", ".jpg", ".jpeg"}
 
     if not path.exists():
         raise FileNotFoundError(f"Image directory '{path}' does not exist.")
@@ -17,7 +17,7 @@ def _get_image_paths(image_dir: str) -> list[Path]:
         [
             p
             for p in path.iterdir()
-            if p.is_file() and p.suffix.lower() in valid_extensions
+            if p.is_file() and p.suffix.lower() in Searchy.VALID_EXTENSIONS
         ]
     )
 

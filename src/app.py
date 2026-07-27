@@ -1,3 +1,5 @@
+import threading
+
 from flask import Flask, render_template, request, send_from_directory
 
 from searchy import Searchy
@@ -39,4 +41,6 @@ def serve_image(filename):
 
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0")
+    t = threading.Thread(target=searchy.watch, args=[IMAGE_DIR], daemon=True)
+    t.start()
+    app.run(debug=True, host="0.0.0.0", use_reloader=False)
