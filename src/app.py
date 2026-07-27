@@ -1,7 +1,6 @@
 from flask import Flask, render_template, request, send_from_directory
 
 from searchy import Searchy
-from searchy.tools import tools
 
 IMAGE_DIR = "../images"
 
