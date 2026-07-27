@@ -6,7 +6,7 @@ from pathlib import Path
 import valkey
 
 
-def get_image_paths(image_dir: str = "./images") -> list[Path]:
+def _get_image_paths(image_dir: str) -> list[Path]:
     path = Path(image_dir)
     valid_extensions = {".png", ".jpg", ".jpeg"}
 
@@ -22,7 +22,7 @@ def get_image_paths(image_dir: str = "./images") -> list[Path]:
     )
 
 
-def get_image_hashes(image_paths: list[Path]) -> list[str]:
+def _get_image_hashes(image_paths: list[Path]) -> list[str]:
     def get_image_hash(path: str) -> str:
         hasher = hashlib.sha256()
 
@@ -38,9 +38,10 @@ def get_image_hashes(image_paths: list[Path]) -> list[str]:
 
 def get_images_to_update(
     vk: valkey.Valkey,
-    paths: list[Path],
-    hashes: list[str],
+    image_dir: str = "./images",
 ) -> tuple[list[tuple[str, Path]], list[str]]:
+    paths = _get_image_paths(image_dir)
+    hashes = _get_image_hashes(paths)
     images = dict(zip(hashes, paths))
     input_hashes = set(hashes)
 

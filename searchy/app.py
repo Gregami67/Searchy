@@ -53,8 +53,14 @@ class Searchy:
     def save_embeds(
         self,
         images: list[tuple[str, Path]],
-        embeds: torch.Tensor,
+        embeds: torch.Tensor | None,
     ) -> None:
+        if len(images) == 0 or embeds is None:
+            print("No embeddings to save... Skipping")
+            return None
+        else:
+            print(f"Found {len(images)} embedding(s) to save")
+
         pipe = self.vk.pipeline()
         embeds_np = embeds.detach().cpu().numpy().astype(np.float32)
 
@@ -65,6 +71,20 @@ class Searchy:
                 f"image:{hash}",
                 mapping={"url_path": str(path), "image_embed": embed.tobytes()},
             )
+
+        pipe.execute()
+
+    def delete_embeds(self, hashes: list[str]) -> None:
+        if len(hashes) == 0:
+            print("No embeddings to delete... Skipping")
+            return None
+        else:
+            print(f"Found {len(hashes)} embedding(s) to save")
+
+        pipe = self.vk.pipeline()
+
+        for hash in hashes:
+            pipe.delete(f"image:{hash}")
 
         pipe.execute()
 
