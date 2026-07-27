@@ -105,6 +105,8 @@ class Searchy:
         page: int,
         count: int = 50,
     ) -> list[str]:
+        print(f"Query to search is: {query}")
+
         if page <= 0:
             page = 1
 
@@ -122,7 +124,9 @@ class Searchy:
         )
 
         query_vector_bytes = text_embeds.tobytes()
-        num_images = self.vk.get("image_count").decode()
+        num_images = self.vk.get("image_count")
+        num_images = num_images.decode() if num_images else 1
+
         page_size = count * page
         search_query = (
             Query(f"*=>[KNN {num_images} @image_embed $vec AS vector_distance]")
