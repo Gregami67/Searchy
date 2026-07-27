@@ -1,6 +1,4 @@
-import os
-
-from flask import Flask, abort, json, render_template, request, send_file
+from flask import Flask, render_template, request, send_from_directory
 
 from searchy import Searchy
 from searchy.tools import tools
@@ -38,10 +36,7 @@ def search():
 
 @app.route("/images/<path:filename>")
 def serve_image(filename):
-    filepath = os.path.join(IMAGE_DIR, os.path.basename(filename))
-    if not os.path.abspath(filepath).startswith(os.path.abspath(IMAGE_DIR)):
-        abort(403)
-    return send_file(filepath)
+    return send_from_directory(IMAGE_DIR, filename)
 
 
 if __name__ == "__main__":
