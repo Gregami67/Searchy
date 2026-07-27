@@ -1,11 +1,14 @@
-import os as _os
+import os
 
 from flask import Flask, abort, json, render_template, request, send_file
 
-from ai import load_model_and_processor, search_embeddings
+from searchy import Searchy
+from searchy.tools import tools
+
+IMAGE_DIR = "../images"
 
 app = Flask(__name__)
-model, processor, device = load_model_and_processor("cpu")
+searchy = Searchy(IMAGE_DIR)
 
 
 @app.route("/")
@@ -14,43 +17,29 @@ def index():
 
 
 @app.route("/api/search", methods=["POST"])
-def api_search():
-    data = request.get_json(silent=True) or {}
-    query = (data.get("q") or "").strip()
-    page = data.get("page", 1)
+def search():
+    data = request.get_json()
 
+    query = data.get("query")
     if not query:
-        return json.jsonify(
-            {"image_paths": [], "total": 0, "has_next": False, "has_prev": False}
-        )
+        return "Missing query", 400
 
-    result = search_embeddings(query, processor, model, device)
-    image_paths = [_os.path.basename(path) for path, _ in result]
-    total = len(image_paths)
-    per_page = 30
-    start = (page - 1) * per_page
-    end = start + per_page
-    paginated = image_paths[start:end]
-    has_next = end < total
-    has_prev = page > 1
+    page = request.args.get("page")
+    if not page:
+        return "Missing page", 400
+    page = int(page)
 
-    return json.jsonify(
-        {
-            "image_paths": paginated,
-            "total": total,
-            "has_next": has_next,
-            "has_prev": has_prev,
-            "search_query": query,
-            "page": page,
-        }
-    )
+    count = request.args.get("count")
+    count = int(count) if count else Searchy.COUNT
+
+    results = searchy.search(query, page, count)
+    return results
 
 
 @app.route("/images/<path:filename>")
 def serve_image(filename):
-    image_dir = "./images"
-    filepath = _os.path.join(image_dir, _os.path.basename(filename))
-    if not _os.path.abspath(filepath).startswith(_os.path.abspath(image_dir)):
+    filepath = os.path.join(IMAGE_DIR, os.path.basename(filename))
+    if not os.path.abspath(filepath).startswith(os.path.abspath(IMAGE_DIR)):
         abort(403)
     return send_file(filepath)
 

@@ -7,11 +7,15 @@ from transformers import CLIPModel, CLIPProcessor
 from valkey.commands.search.query import Query
 
 import db
+from searchy.tools import tools
 
 
 class Searchy:
+    COUNT = 50
+
     def __init__(
         self,
+        image_dir: str,
         model_name: str = "openai/clip-vit-base-patch32",
         device: str | None = None,
     ) -> None:
@@ -22,6 +26,17 @@ class Searchy:
         self.model = CLIPModel.from_pretrained(model_name).to(device)
         self.processor = CLIPProcessor.from_pretrained(model_name)
         self.device = device
+
+        images_to_add, hashes_to_delete = tools.get_images_to_update(
+            vk=self.vk, image_dir=image_dir
+        )
+        paths = [p for _, p in images_to_add]
+        embeds = self.create_embeds(paths)
+
+        self.save_embeds(images_to_add, embeds)
+        self.delete_embeds(hashes_to_delete)
+
+        print("Searchy initialized")
 
     def create_embeds(
         self, image_paths: list[Path], batch_size=32
@@ -44,7 +59,9 @@ class Searchy:
                 with Image.open(path) as img:
                     batch_images.append(img.convert("RGB"))
 
-            inputs = self.processor(images=batch_images, return_tensors="pt").to(self.device)
+            inputs = self.processor(images=batch_images, return_tensors="pt").to(
+                self.device
+            )
 
             with torch.inference_mode():
                 image_features = self.model.get_image_features(**inputs)
@@ -103,7 +120,7 @@ class Searchy:
         self,
         query: str,
         page: int,
-        count: int = 50,
+        count: int,
     ) -> list[str]:
         print(f"Query to search is: {query}")
 
