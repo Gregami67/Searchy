@@ -69,17 +69,17 @@
             hasMore = false;
         }
 
-        function appendGallery(results) {
+        function appendGallery(imagePaths) {
             resultsEl.style.display = 'block';
-            if (results.image_paths.length === 0) {
+            if (imagePaths.length === 0) {
                 hasMore = false;
                 return;
             }
 
             let html = '';
-            for (const name of results.image_paths) {
+            for (const path of imagePaths) {
                 html += '<div class="gallery-item">'
-                    + '<img src="/images/' + encodeURIComponent(name) + '" alt="' + name + '">'
+                    + '<img src="' + path + '" alt="' + path + '">'
                     + '</div>';
             }
 
@@ -88,7 +88,7 @@
             }
             const gallery = resultsEl.querySelector('.gallery');
             gallery.insertAdjacentHTML('beforeend', html);
-            hasMore = results.has_next;
+            hasMore = imagePaths.length >= Searchy.COUNT;
         }
 
         async function doSearch(query, page) {
@@ -101,16 +101,20 @@
             btn.textContent = 'Searching...';
 
             try {
-                const res = await fetch('/api/search', {
+                const res = await fetch(`/api/search?page=${page}`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({q: query, page: page})
+                    body: JSON.stringify({query})
                 });
+                if (res.status === 400) {
+                    showEmptyMessage(query);
+                    return;
+                }
                 const data = await res.json();
                 if (page === 1) {
-                    hasMore = data.has_next;
-                    if (!hasMore && data.total <= 0) {
-                        showEmptyMessage(data.search_query || query);
+                    hasMore = data.length >= Searchy.COUNT;
+                    if (data.length === 0) {
+                        showEmptyMessage(query);
                     }
                     appendGallery(data);
                 } else {
@@ -128,6 +132,8 @@
             hasMore = false;
         }
 
+        const Searchy = { COUNT: 50 };
+
         async function loadMore() {
             if (isLoading || !hasMore) return;
             isLoading = true;
@@ -135,10 +141,10 @@
 
             currentPage++;
             try {
-                const res = await fetch('/api/search', {
+                const res = await fetch(`/api/search?page=${currentPage}`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({q: currentQuery, page: currentPage})
+                    body: JSON.stringify({query: currentQuery})
                 });
                 const data = await res.json();
                 appendGallery(data);
