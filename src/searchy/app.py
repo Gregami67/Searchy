@@ -142,7 +142,8 @@ class Searchy:
 
         query_vector_bytes = text_embeds.tobytes()
         num_images = self.vk.get("image_count")
-        num_images = num_images.decode() if num_images else 1
+        num_images = int(num_images.decode()) if num_images else 1
+        num_images = 1 if num_images == 0 else num_images
 
         page_size = count * page
         search_query = (
