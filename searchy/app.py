@@ -26,10 +26,15 @@ class Searchy:
     def create_embeds(
         self, image_paths: list[Path], batch_size=32
     ) -> torch.Tensor | None:
-        all_embeds = []
+        print(f"Found {len(image_paths)} image(s) to embed", end="")
 
         if len(image_paths) == 0:
+            print("... Skipping")
             return None
+        else:
+            print()
+
+        all_embeds = []
 
         for i in range(0, len(image_paths), batch_size):
             batch_paths = image_paths[i : i + batch_size]
@@ -55,11 +60,13 @@ class Searchy:
         images: list[tuple[str, Path]],
         embeds: torch.Tensor | None,
     ) -> None:
+        print(f"Found {len(images)} embedding(s) to save", end="")
+
         if len(images) == 0 or embeds is None:
-            print("No embeddings to save... Skipping")
+            print("... Skipping")
             return None
         else:
-            print(f"Found {len(images)} embedding(s) to save")
+            print()
 
         pipe = self.vk.pipeline()
         embeds_np = embeds.detach().cpu().numpy().astype(np.float32)
@@ -72,23 +79,35 @@ class Searchy:
                 mapping={"url_path": str(path), "image_embed": embed.tobytes()},
             )
 
+        pipe.incrby("image_count", len(images))
         pipe.execute()
 
     def delete_embeds(self, hashes: list[str]) -> None:
+        print(f"Found {len(hashes)} embedding(s) to delete", end="")
+
         if len(hashes) == 0:
-            print("No embeddings to delete... Skipping")
+            print("... Skipping")
             return None
         else:
-            print(f"Found {len(hashes)} embedding(s) to save")
+            print()
 
         pipe = self.vk.pipeline()
 
         for hash in hashes:
             pipe.delete(f"image:{hash}")
 
+        pipe.decrby("image_count", len(hashes))
         pipe.execute()
 
-    def search(self, query: str, limit: int = 10) -> list[str]:
+    def search(
+        self,
+        query: str,
+        page: int,
+        count: int = 50,
+    ) -> list[str]:
+        if page <= 0:
+            page = 1
+
         inputs = self.processor(text=[query], return_tensors="pt")
 
         with torch.inference_mode():
@@ -103,9 +122,11 @@ class Searchy:
         )
 
         query_vector_bytes = text_embeds.tobytes()
+        num_images = self.vk.get("image_count").decode()
+        page_size = count * page
         search_query = (
-            Query(f"*=>[KNN {limit} @image_embed $vec AS vector_distance]")
-            .paging(0, limit)
+            Query(f"*=>[KNN {num_images} @image_embed $vec AS vector_distance]")
+            .paging(page_size - count, page_size)
             .return_fields("url_path", "vector_distance")
         )
 

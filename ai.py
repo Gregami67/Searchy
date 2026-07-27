@@ -11,7 +11,7 @@ def main():
     searchy.save_embeds(images_to_add, embeds)
     searchy.delete_embeds(hashes_to_delete)
 
-    print(searchy.search("potato", 5))
+    print(searchy.search("potato", page=1))
 
 
 if __name__ == "__main__":
