@@ -3,8 +3,8 @@ from searchy.tools import tools
 
 
 def main():
-    searchy = Searchy(device="cpu")
-    images_to_add, hashes_to_delete = tools.get_images_to_update(vk=searchy.vk)
+    searchy = Searchy()
+    images_to_add, hashes_to_delete = tools.get_images_to_update(vk=searchy.vk, image_dir="../images/")
     paths = [p for _, p in images_to_add]
     embeds = searchy.create_embeds(paths)
 

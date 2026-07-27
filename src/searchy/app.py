@@ -44,7 +44,7 @@ class Searchy:
                 with Image.open(path) as img:
                     batch_images.append(img.convert("RGB"))
 
-            inputs = self.processor(images=batch_images, return_tensors="pt")
+            inputs = self.processor(images=batch_images, return_tensors="pt").to(self.device)
 
             with torch.inference_mode():
                 image_features = self.model.get_image_features(**inputs)
@@ -110,7 +110,7 @@ class Searchy:
         if page <= 0:
             page = 1
 
-        inputs = self.processor(text=[query], return_tensors="pt")
+        inputs = self.processor(text=[query], return_tensors="pt").to(self.device)
 
         with torch.inference_mode():
             text_features = self.model.get_text_features(**inputs)

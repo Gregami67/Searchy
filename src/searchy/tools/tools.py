@@ -38,7 +38,7 @@ def _get_image_hashes(image_paths: list[Path]) -> list[str]:
 
 def get_images_to_update(
     vk: valkey.Valkey,
-    image_dir: str = "./images",
+    image_dir: str,
 ) -> tuple[list[tuple[str, Path]], list[str]]:
     paths = _get_image_paths(image_dir)
     hashes = _get_image_hashes(paths)

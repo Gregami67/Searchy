@@ -1,5 +1,6 @@
 .venv
 .python-version
 images/
-__pycache__
-embeddings.json
+__pycache__/
+build/
+*.egg-info/
