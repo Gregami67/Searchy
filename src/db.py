@@ -4,7 +4,6 @@ from valkey.commands.search.indexDefinition import IndexDefinition, IndexType
 
 vk = valkey.Valkey()
 
-# TODO: Should I save both image and text embeddings?
 fields = [
     TagField("url_path"),
     VectorField(
