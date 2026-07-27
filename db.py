@@ -2,7 +2,7 @@ import valkey
 from valkey.commands.search.field import VectorField, TagField
 from valkey.commands.search.indexDefinition import IndexDefinition, IndexType
 
-v = valkey.Valkey()
+vk = valkey.Valkey()
 
 # TODO: Should I save both image and text embeddings?
 fields = [
@@ -15,7 +15,7 @@ fields = [
 ]
 
 try:
-    v.ft("idx:images").create_index(
+    vk.ft("idx:images").create_index(
         fields=fields, definition=IndexDefinition(["image:"], index_type=IndexType.HASH)
     )
     print("Created images index")
