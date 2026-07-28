@@ -3,7 +3,7 @@ import threading
 from flask import Flask, render_template, request, send_from_directory
 
 from searchy import Searchy
-from searchy.attributes import DEBUG, IMAGE_COUNT, IMAGE_DIR, WATCHDOG
+from searchy.attributes import IMAGE_COUNT, IMAGE_DIR, WATCHDOG
 
 app = Flask(__name__)
 searchy = Searchy(IMAGE_DIR)
@@ -41,7 +41,3 @@ def search():
 @app.route("/images/<path:filename>")
 def serve_image(filename):
     return send_from_directory(IMAGE_DIR, filename)
-
-
-if __name__ == "__main__":
-    app.run(debug=DEBUG, host="0.0.0.0", use_reloader=False)

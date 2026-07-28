@@ -28,4 +28,8 @@ readme = "README.md"
 license = "MIT"
 keywords = ["context search", "CLIP"]
 
+[project.scripts]
+searchy-dev = "gunicorn:run_dev"
+searchy-prod = "gunicorn:run_prod"
+
 [tool.setuptools_scm]
