@@ -13,11 +13,11 @@ Searchy uses OpenAI's CLIP model to embed images and text into a shared vector s
 - [x] Live directory watching with Watchdog
 - [x] Flask API
 - [x] Simple gallery frontend
+- [ ] Run with Docker Compose
 - [ ] Image-to-image search
 - [ ] Text-to-video search
   - [ ] CLIP frame extraction
   - [ ] Whisper transcription extraction
-- [ ] Run with Docker Compose
 
 ## Getting Started
 
