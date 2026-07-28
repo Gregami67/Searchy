@@ -3,8 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import valkey
-
-from searchy.app import Searchy
+from searchy.attributes import VALID_EXTENSIONS
 
 
 def _get_image_paths(image_dir: str) -> list[Path]:
@@ -17,7 +16,7 @@ def _get_image_paths(image_dir: str) -> list[Path]:
         [
             p
             for p in path.iterdir()
-            if p.is_file() and p.suffix.lower() in Searchy.VALID_EXTENSIONS
+            if p.is_file() and p.suffix.lower() in VALID_EXTENSIONS
         ]
     )
 

@@ -10,7 +10,8 @@ from watchdog.events import FileSystemEvent, FileSystemEventHandler
 from watchdog.observers import Observer
 
 import db
-from searchy.tools import tools
+from searchy.attributes import VALID_EXTENSIONS
+from searchy.tools import get_images_to_update
 
 
 class ImageFolderHandler(FileSystemEventHandler):
@@ -20,13 +21,13 @@ class ImageFolderHandler(FileSystemEventHandler):
         self.image_dir = image_dir
 
     def _is_image(self, path_str: str) -> bool:
-        return Path(path_str).suffix.lower() in Searchy.VALID_EXTENSIONS
+        return Path(path_str).suffix.lower() in VALID_EXTENSIONS
 
     def on_created(self, event: FileSystemEvent) -> None:
         if not event.is_directory and self._is_image(event.src_path):
             print(f"Detected new image: {event.src_path}")
 
-            images, _ = tools.get_images_to_update(self.searchy.vk, self.image_dir)
+            images, _ = get_images_to_update(self.searchy.vk, self.image_dir)
             paths = [p for _, p in images]
             embeds = self.searchy.create_embeds(paths)
 
@@ -36,14 +37,11 @@ class ImageFolderHandler(FileSystemEventHandler):
         if not event.is_directory and self._is_image(event.src_path):
             print(f"Detected deleted image: {event.src_path}")
 
-            _, hashes = tools.get_images_to_update(self.searchy.vk, self.image_dir)
+            _, hashes = get_images_to_update(self.searchy.vk, self.image_dir)
             self.searchy.delete_embeds(hashes)
 
 
 class Searchy:
-    COUNT = 50
-    VALID_EXTENSIONS = {".png", ".jpg", ".jpeg"}
-
     def __init__(
         self,
         image_dir: str,
@@ -58,8 +56,9 @@ class Searchy:
         self.processor = CLIPProcessor.from_pretrained(model_name)
         self.device = device
 
-        images_to_add, hashes_to_delete = tools.get_images_to_update(
-            vk=self.vk, image_dir=image_dir
+        images_to_add, hashes_to_delete = get_images_to_update(
+            vk=self.vk,
+            image_dir=image_dir,
         )
         paths = [p for _, p in images_to_add]
         embeds = self.create_embeds(paths)

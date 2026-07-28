@@ -3,6 +3,7 @@ import threading
 from flask import Flask, render_template, request, send_from_directory
 
 from searchy import Searchy
+from searchy.attributes import COUNT
 
 IMAGE_DIR = "../images"
 
@@ -29,7 +30,7 @@ def search():
     page = int(page)
 
     count = request.args.get("count")
-    count = int(count) if count else Searchy.COUNT
+    count = int(count) if count else COUNT
 
     results = searchy.search(query, page, count)
     return results

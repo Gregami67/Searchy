@@ -1,1 +1,1 @@
-from searchy.app import Searchy
+from .app import Searchy as Searchy
