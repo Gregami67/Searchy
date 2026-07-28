@@ -27,14 +27,6 @@ Searchy uses OpenAI's CLIP model to embed images and text into a shared vector s
 - Docker / Docker Compose
 - pip
 
-```
-Flask==3.1.3
-torchvision==0.28.0
-transformers==5.14.1
-valkey==6.1.1
-watchdog==6.0.0
-```
-
 ### Installing
 
 ```bash
@@ -47,9 +39,14 @@ pip install -e .
 ### Executing program
 
 ```bash
+# Start Valkey
 docker compose up -d
 
-touch src/.env
+# Copy default environment variables
+cp .env.sample .env
+
+# Update .env
+IMAGE_DIR=/path/of/your/image/dir
 
 python src/app.py
 ```
