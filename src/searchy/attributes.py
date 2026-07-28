@@ -1,5 +1,7 @@
 import os
 
+DEBUG = True if os.getenv("DEBUG") == "true" else False
+
 BATCH_SIZE = int(os.getenv("BATCH_SIZE", 32))
 IMAGE_COUNT = int(os.getenv("IMAGE_COUNT", 50))
 IMAGE_DIR = os.getenv("IMAGE_DIR")
