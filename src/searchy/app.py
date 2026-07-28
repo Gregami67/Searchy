@@ -10,7 +10,7 @@ from watchdog.events import FileSystemEvent, FileSystemEventHandler
 from watchdog.observers import Observer
 
 import db
-from searchy.attributes import VALID_EXTENSIONS
+from searchy.attributes import BATCH_SIZE, VALID_EXTENSIONS
 from searchy.tools import get_images_to_update
 
 
@@ -68,9 +68,7 @@ class Searchy:
 
         print("Searchy initialized")
 
-    def create_embeds(
-        self, image_paths: list[Path], batch_size=32
-    ) -> torch.Tensor | None:
+    def create_embeds(self, image_paths: list[Path]) -> torch.Tensor | None:
         print(f"Found {len(image_paths)} image(s) to embed", end="")
 
         if len(image_paths) == 0:
@@ -81,8 +79,8 @@ class Searchy:
 
         all_embeds = []
 
-        for i in range(0, len(image_paths), batch_size):
-            batch_paths = image_paths[i : i + batch_size]
+        for i in range(0, len(image_paths), BATCH_SIZE):
+            batch_paths = image_paths[i : i + BATCH_SIZE]
             batch_images = []
 
             for path in batch_paths:
