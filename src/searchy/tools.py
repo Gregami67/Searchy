@@ -38,7 +38,7 @@ def _get_image_hashes(image_paths: list[Path]) -> list[str]:
 def get_images_to_update(
     vk: valkey.Valkey,
     image_dir: str,
-) -> tuple[list[tuple[str, Path]], list[str]]:
+) -> tuple[tuple[list[str], list[Path]], list[str]]:
     paths = _get_image_paths(image_dir)
     hashes = _get_image_hashes(paths)
     images = dict(zip(hashes, paths))
@@ -50,7 +50,10 @@ def get_images_to_update(
     add_set = input_hashes - vk_hashes
     delete_set = vk_hashes - input_hashes
 
-    images_to_add = [(hash, images[hash]) for hash in add_set]
+    hashes_to_add = [hash for hash in add_set]
+    paths_to_add = [images[hash] for hash in add_set]
+
+    images_to_add = hashes_to_add, paths_to_add
     hashes_to_delete = [hash for hash in delete_set]
 
     return images_to_add, hashes_to_delete

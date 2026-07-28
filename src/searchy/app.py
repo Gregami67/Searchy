@@ -27,9 +27,9 @@ class ImageFolderHandler(FileSystemEventHandler):
         if not event.is_directory and self._is_image(event.src_path):
             print(f"Detected new image: {event.src_path}")
 
-            images, _ = get_images_to_update(self.searchy.vk, self.image_dir)
-            paths = [p for _, p in images]
+            (hashes, paths), _ = get_images_to_update(self.searchy.vk, self.image_dir)
             embeds = self.searchy.create_embeds(paths)
+            images = [(hash, path.name) for hash, path in zip(hashes, paths)]
 
             self.searchy.save_embeds(images, embeds)
 
@@ -56,12 +56,12 @@ class Searchy:
         self.processor = CLIPProcessor.from_pretrained(model_name)
         self.device = device
 
-        images_to_add, hashes_to_delete = get_images_to_update(
+        (hashes, paths), hashes_to_delete = get_images_to_update(
             vk=self.vk,
             image_dir=image_dir,
         )
-        paths = [p for _, p in images_to_add]
         embeds = self.create_embeds(paths)
+        images_to_add = [(hash, path.name) for hash, path in zip(hashes, paths)]
 
         self.save_embeds(images_to_add, embeds)
         self.delete_embeds(hashes_to_delete)
@@ -104,7 +104,7 @@ class Searchy:
 
     def save_embeds(
         self,
-        images: list[tuple[str, Path]],
+        images: list[tuple[str, str]],
         embeds: torch.Tensor | None,
     ) -> None:
         print(f"Found {len(images)} embedding(s) to save", end="")
@@ -116,14 +116,15 @@ class Searchy:
             print()
 
         pipe = self.vk.pipeline()
+        # TODO: Make tobytes here?
         embeds_np = embeds.detach().cpu().numpy().astype(np.float32)
 
         for image, embed in zip(images, embeds_np):
-            hash, path = image
+            hash, name = image
 
             pipe.hset(
                 f"image:{hash}",
-                mapping={"url_path": str(path), "image_embed": embed.tobytes()},
+                mapping={"name": name, "image_embed": embed.tobytes()},
             )
 
         pipe.incrby("image_count", len(images))
@@ -194,11 +195,11 @@ class Searchy:
         search_query = (
             Query(f"*=>[KNN {num_images} @image_embed $vec AS vector_distance]")
             .paging(page_size - count, page_size)
-            .return_fields("url_path", "vector_distance")
+            .return_fields("name", "vector_distance")
         )
 
         results = self.vk.ft("idx:images").search(
             search_query, query_params={"vec": query_vector_bytes}
         )
 
-        return [result.url_path for result in results.docs]
+        return [result.name for result in results.docs]

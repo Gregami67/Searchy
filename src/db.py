@@ -5,7 +5,7 @@ from valkey.commands.search.indexDefinition import IndexDefinition, IndexType
 vk = valkey.Valkey()
 
 fields = [
-    TagField("url_path"),
+    TagField("name"),
     VectorField(
         "image_embed",
         "FLAT",
