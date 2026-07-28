@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools >= 77.0.3"]
+requires = ["setuptools>=80", "setuptools-scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -27,3 +27,5 @@ description = "Search images and more from context"
 readme = "README.md"
 license = "MIT"
 keywords = ["context search", "CLIP"]
+
+[tool.setuptools_scm]
