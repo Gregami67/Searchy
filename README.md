@@ -1,29 +1,75 @@
 # Searchy
 
-## Plan
+Semantic image search powered by CLIP — describe what you're looking for in natural language and find it in your local image collection.
 
-### Pre start
+## Description
 
-Must run in order
+Searchy uses OpenAI's CLIP model to embed images and text into a shared vector space, enabling fast semantic search over a local directory of images. On startup, all images are indexed via their visual embeddings and stored in Valkey. A watchdog watches for new or deleted images and keeps the index in sync automatically. Queries return visually similar results ranked by cosine distance.
 
-- load the models (CLIPModel, CLIPProcessor)
-- read all image paths
-- hash images (in batches?)
-- compare if hash exists in db (db side)
-  - add new images to db (client side)
-    - calculate image embeds
-    - save to db
-  - remove deleted images from image paths (db side)
-    - drop image hash
+**Features:**
 
-### Ready
+- [x] Text-to-Image search
+- [x] Valkey-Search with cosine similarity
+- [x] Live directory watching with Watchdog
+- [x] Flask API
+- [x] Simple gallery frontend
+- [ ] Image-to-image search
+- [ ] Text-to-video search
+  - [ ] CLIP frame extraction
+  - [ ] Whisper transcription extraction
+- [ ] Run with Docker Compose
 
-#### Tasks (celery?)
+## Getting Started
 
-- watch images paths
-  - repeat hash comparison
+### Dependencies
 
-#### Flask
+- Python 3.12+
+- Docker / Docker Compose
+- pip
 
-- search by text (db side)
-- search by image (db side) (optional)
+```
+Flask==3.1.3
+torchvision==0.28.0
+transformers==5.14.1
+valkey==6.1.1
+watchdog==6.0.0
+```
+
+### Installing
+
+```bash
+cd searchy
+python -m venv .venv
+source .venv/bin/activate
+pip install -e .
+```
+
+### Executing program
+
+```bash
+docker compose up -d
+
+touch src/.env
+
+python src/app.py
+```
+
+## Help
+
+Common issues:
+
+- **Valkey connection refused** — confirm `docker compose up valkey` is running before starting the Flask app.
+
+## Authors
+
+Gregami - [git@gregami.com](mailto:git@gregami.com)
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE.md file for details
+
+## Acknowledgments
+
+- [Flask](https://flask.palletsprojects.com/en/stable/#user-s-guide)
+- [CLIP](https://huggingface.co/docs/transformers/v5.14.0/en/model_doc/clip)
+- [Valkey](https://valkey.io/commands/)
