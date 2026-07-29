@@ -1,3 +1,4 @@
+import logging
 import time
 from pathlib import Path
 
@@ -13,6 +14,8 @@ import db
 from searchy.attributes import BATCH_SIZE, VALID_EXTENSIONS
 from searchy.tools import get_images_to_update
 
+logger = logging.getLogger("searchy")
+
 
 class ImageFolderHandler(FileSystemEventHandler):
     def __init__(self, searchy: "Searchy", image_dir: str):
@@ -25,7 +28,7 @@ class ImageFolderHandler(FileSystemEventHandler):
 
     def on_created(self, event: FileSystemEvent) -> None:
         if not event.is_directory and self._is_image(event.src_path):
-            print(f"Detected new image: {event.src_path}")
+            logger.info(f"Detected new image: {event.src_path}")
 
             (hashes, paths), _ = get_images_to_update(self.searchy.vk, self.image_dir)
             embeds = self.searchy.create_embeds(paths)
@@ -35,7 +38,7 @@ class ImageFolderHandler(FileSystemEventHandler):
 
     def on_deleted(self, event: FileSystemEvent) -> None:
         if not event.is_directory and self._is_image(event.src_path):
-            print(f"Detected deleted image: {event.src_path}")
+            logger.info(f"Detected deleted image: {event.src_path}")
 
             _, hashes = get_images_to_update(self.searchy.vk, self.image_dir)
             self.searchy.delete_embeds(hashes)
@@ -66,16 +69,16 @@ class Searchy:
         self.save_embeds(images_to_add, embeds)
         self.delete_embeds(hashes_to_delete)
 
-        print("Searchy initialized")
+        logger.info("Searchy initialized")
 
     def create_embeds(self, image_paths: list[Path]) -> torch.Tensor | None:
-        print(f"Found {len(image_paths)} image(s) to embed", end="")
+        info = f"Found {len(image_paths)} image(s) to embed"
 
-        if len(image_paths) == 0:
-            print("... Skipping")
+        if not image_paths:
+            logger.info(info + "... Skipping")
             return None
         else:
-            print()
+            logger.info(info)
 
         all_embeds = []
 
@@ -105,13 +108,13 @@ class Searchy:
         images: list[tuple[str, str]],
         embeds: torch.Tensor | None,
     ) -> None:
-        print(f"Found {len(images)} embedding(s) to save", end="")
+        info = f"Found {len(images)} embedding(s) to save"
 
-        if len(images) == 0 or embeds is None:
-            print("... Skipping")
+        if not images or embeds is None:
+            logger.info(info + "... Skipping")
             return None
         else:
-            print()
+            logger.info(info)
 
         pipe = self.vk.pipeline()
         # TODO: Make tobytes here?
@@ -129,13 +132,13 @@ class Searchy:
         pipe.execute()
 
     def delete_embeds(self, hashes: list[str]) -> None:
-        print(f"Found {len(hashes)} embedding(s) to delete", end="")
+        info = f"Found {len(hashes)} embedding(s) to delete"
 
-        if len(hashes) == 0:
-            print("... Skipping")
+        if not hashes:
+            logger.info(info + "... Skipping")
             return None
         else:
-            print()
+            logger.info(info)
 
         pipe = self.vk.pipeline()
 
@@ -151,13 +154,13 @@ class Searchy:
         observer.schedule(event_handler, path=image_dir, recursive=False)
         observer.start()
 
-        print(f"Started watching directory: {image_dir}")
+        logger.info(f"Started watching directory: {image_dir}")
         try:
             while True:
                 time.sleep(1)
         except KeyboardInterrupt:
             observer.stop()
-            print("\nStopped watching directory.")
+            logger.info("\nStopped watching directory.")
         observer.join()
 
     def search(
@@ -166,7 +169,7 @@ class Searchy:
         page: int,
         count: int,
     ) -> list[str]:
-        print(f"Query to search is: {query}")
+        logger.debug(f"Query to search is: {query}")
 
         if page <= 0:
             page = 1

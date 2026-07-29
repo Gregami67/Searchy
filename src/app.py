@@ -1,11 +1,18 @@
+import logging
 import threading
 
 from flask import Flask, render_template, request, send_from_directory
+from flask.logging import default_handler
 
 from searchy import Searchy
-from searchy.attributes import IMAGE_COUNT, IMAGE_DIR, WATCHDOG
+from searchy.attributes import DEBUG, IMAGE_COUNT, IMAGE_DIR, WATCHDOG
 
 app = Flask(__name__)
+
+logger = logging.getLogger("searchy")
+logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
+logger.addHandler(default_handler)
+
 searchy = Searchy(IMAGE_DIR)
 
 if WATCHDOG:
