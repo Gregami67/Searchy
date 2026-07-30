@@ -1,8 +1,10 @@
 import logging
 import threading
 
+import torch
 from flask import Flask, render_template, request, send_from_directory
 from flask.logging import default_handler
+from PIL import Image
 
 from searchy import Searchy
 from searchy.attributes import DEBUG, IMAGE_COUNT, IMAGE_DIR, WATCHDOG
@@ -27,11 +29,20 @@ def index():
 
 @app.route("/api/search", methods=["POST"])
 def search():
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
 
     query = data.get("query")
+    img = None
+
     if not query:
-        return "Missing query", 400
+        image = request.files.get("image")
+
+        if image:
+            img = Image.open(image.stream).convert("RGB")
+        else:
+            return "Missing query or image", 400
+
+    query = None if img else query
 
     page = request.args.get("page")
     if not page:
@@ -41,7 +52,7 @@ def search():
     count = request.args.get("count")
     count = int(count) if count else IMAGE_COUNT
 
-    results = searchy.search(query, page, count)
+    results = searchy.search(query, img, page, count)
     return results
 
 

@@ -5,6 +5,7 @@ from pathlib import Path
 import numpy as np
 import torch
 from PIL import Image
+from torch.nn import functional as F
 from transformers import CLIPModel, CLIPProcessor
 from valkey.commands.search.query import Query
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
@@ -71,7 +72,7 @@ class Searchy:
 
         logger.info("Searchy initialized")
 
-    def create_embeds(self, image_paths: list[Path]) -> torch.Tensor | None:
+    def create_embeds(self, image_paths: list[Path]) -> np.ndarray | None:
         info = f"Found {len(image_paths)} image(s) to embed"
 
         if not image_paths:
@@ -96,12 +97,12 @@ class Searchy:
 
             with torch.inference_mode():
                 image_features = self.model.get_image_features(**inputs)
+                embeds = image_features.pooler_output
+                embeds_norm = F.normalize(embeds, dim=-1).cpu()
 
-            embeds = image_features.pooler_output
-            embeds_norm = torch.nn.functional.normalize(embeds, dim=-1)
-            all_embeds.append(embeds_norm.cpu())
+            all_embeds.append(embeds_norm)
 
-        return torch.cat(all_embeds, dim=0)
+        return torch.cat(all_embeds, dim=0).numpy().astype(np.float32)
 
     def save_embeds(
         self,
@@ -165,7 +166,8 @@ class Searchy:
 
     def search(
         self,
-        query: str,
+        query: str | None,
+        image: Image.Image | None,
         page: int,
         count: int,
     ) -> list[str]:
@@ -174,20 +176,30 @@ class Searchy:
         if page <= 0:
             page = 1
 
-        inputs = self.processor(text=[query], return_tensors="pt").to(self.device)
+        if bool(query) == bool(image):
+            return []
+
+        inputs = self.processor(
+            images=image,
+            text=query,
+            return_tensors="pt",
+        ).to(self.device)
 
         with torch.inference_mode():
-            text_features = self.model.get_text_features(**inputs)
+            if query:
+                features = self.model.get_text_features(**inputs)
+            else:
+                features = self.model.get_image_features(**inputs)
 
-        text_embeds = (
-            torch.nn.functional.normalize(text_features.pooler_output, dim=-1)
-            .squeeze(0)
-            .cpu()
-            .numpy()
-            .astype(np.float32)
-        )
+            embeds = (
+                F.normalize(features.pooler_output, dim=-1)
+                .squeeze(0)
+                .cpu()
+                .numpy()
+                .astype(np.float32)
+            )
 
-        query_vector_bytes = text_embeds.tobytes()
+        vector_bytes = embeds.tobytes()
         num_images = self.vk.get("image_count")
         num_images = int(num_images.decode()) if num_images else 1
         num_images = 1 if num_images == 0 else num_images
@@ -200,7 +212,7 @@ class Searchy:
         )
 
         results = self.vk.ft("idx:images").search(
-            search_query, query_params={"vec": query_vector_bytes}
+            search_query, query_params={"vec": vector_bytes}
         )
 
         return [result.name for result in results.docs]
