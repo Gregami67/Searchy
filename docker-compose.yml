@@ -6,3 +6,16 @@ services:
       - 6379:6379
     environment:
       - VALKEY_EXTRA_FLAGS=--save 60 1 --loglevel warning
+
+  searchy:
+    build: .
+    env_file:
+      - .env
+    environment:
+      - IMAGE_DIR=/app/images
+    ports:
+      - 8000:8000
+    volumes:
+      - ${IMAGE_DIR}:/app/images:ro
+    depends_on:
+      - valkey

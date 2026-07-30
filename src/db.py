@@ -1,10 +1,12 @@
-import valkey
 import logging
-from valkey.commands.search.field import VectorField, TagField
+import os
+
+import valkey
+from valkey.commands.search.field import TagField, VectorField
 from valkey.commands.search.indexDefinition import IndexDefinition, IndexType
 
 logger = logging.getLogger("searchy")
-vk = valkey.Valkey()
+vk = valkey.Valkey(os.getenv("VALKEY_HOST", "localhost"))
 
 fields = [
     TagField("name"),
