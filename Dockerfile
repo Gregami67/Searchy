@@ -4,8 +4,6 @@ WORKDIR /app
 
 COPY pyproject.toml .
 
-ENV SETUPTOOLS_SCM_PRETEND_VERSION_FOR_SEARCHY=0.1.0
-
 RUN pip install --no-cache-dir .
 
 COPY . .
