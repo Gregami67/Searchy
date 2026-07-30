@@ -4,6 +4,8 @@ services:
     restart: unless-stopped
     ports:
       - 6379:6379
+    volumes:
+      - valkey_data:/data
     environment:
       - VALKEY_EXTRA_FLAGS=--save 60 1 --loglevel warning
 
@@ -19,3 +21,6 @@ services:
       - ${IMAGE_DIR}:/app/images:ro
     depends_on:
       - valkey
+
+volumes:
+  valkey_data:
