@@ -39,6 +39,27 @@ IMAGE_DIR=/path/of/your/image/dir
 docker compose up -d
 ```
 
+### Development
+
+```bash
+cd searchy
+python -m venv .venv
+source .venv/bin/activate
+pip install -e .
+```
+
+#### Executing program
+
+```bash
+# Copy default environment variables
+cp .env.sample .env
+
+# Update .env
+IMAGE_DIR=/path/of/your/image/dir
+
+python src/app.py
+```
+
 ## Authors
 
 Gregami - [git@gregami.com](mailto:git@gregami.com)
