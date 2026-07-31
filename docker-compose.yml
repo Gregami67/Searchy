@@ -16,7 +16,7 @@ services:
       - IMAGE_DIR=/app/images
       - VALKEY_HOST=valkey
     ports:
-      - 5000:8000
+      - 8000:5000
     volumes:
       - ${IMAGE_DIR}:/app/images:ro
     depends_on:
