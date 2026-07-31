@@ -288,6 +288,28 @@
             .search-form { flex-direction: column; }
             .search-btn, .upload-btn, .submit-preview { width: 100%; text-align: center; }
         }
+
+        /* Viewer overlay */
+        #viewer-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.94);
+            z-index: 1000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #viewer-overlay.active { display: flex; }
+
+        #viewer-img {
+            max-width: 92vw;
+            max-height: 92vh;
+            object-fit: contain;
+            user-select: none;
+            -webkit-user-drag: none;
+            cursor: zoom-in;
+        }
     </style>
 </head>
 <body>
@@ -624,9 +646,33 @@
             viewerImg.style.transform = `translate(${translateX}px, ${translateY}px) scale(${viewerZoom})`;
         }
 
+        let pendingTabSwitch = false;
+
         document.addEventListener('click', (e) => {
-            if (e.target.closest('.gallery-item img')) openViewer(e.target.src);
-            else if (e.target === overlay && viewerZoom <= 1) closeViewer();
+            // If tab was just switched, ignore the click momentarily
+            if (pendingTabSwitch) return;
+
+            // If overlay is open, handle overlay interactions only
+            if (overlay.classList.contains('active')) {
+                if (e.target === overlay) {
+                    if (viewerZoom > 1) {
+                        viewerZoom = 1;
+                        translateX = 0;
+                        translateY = 0;
+                        updateViewerTransform();
+                    } else closeViewer();
+                }
+                return; // block all other clicks while overlay is open
+            }
+
+            // Overlay closed — check if clicking a gallery image
+            const parentItem = e.target.closest('.gallery-item');
+            const clickedImg = e.target.matches('img') ? e.target : parentItem?.querySelector('img');
+            
+            if (parentItem && clickedImg) {
+                openViewer(clickedImg.src);
+                return;
+            }
         });
 
         document.addEventListener('wheel', (e) => {
