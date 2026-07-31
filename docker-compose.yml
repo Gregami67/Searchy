@@ -2,10 +2,8 @@ services:
   valkey:
     image: valkey/valkey-bundle:9.1.2-alpine
     restart: unless-stopped
-    ports:
-      - 6379:6379
     volumes:
-      - valkey_data:/data
+      - model_vectors:/data
     environment:
       - VALKEY_EXTRA_FLAGS=--save 60 1 --loglevel warning
 
@@ -16,12 +14,13 @@ services:
       - .env
     environment:
       - IMAGE_DIR=/app/images
+      - VALKEY_HOST=valkey
     ports:
-      - 8000:8000
+      - 5000:8000
     volumes:
       - ${IMAGE_DIR}:/app/images:ro
     depends_on:
       - valkey
 
 volumes:
-  valkey_data:
+  model_vectors:
