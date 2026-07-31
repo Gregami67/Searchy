@@ -2,7 +2,7 @@ import logging
 import threading
 
 import torch
-from flask import Flask, render_template, request, send_from_directory
+from flask import Flask, abort, render_template, request, send_from_directory
 from flask.logging import default_handler
 from PIL import Image
 
@@ -27,32 +27,50 @@ def index():
     return render_template("index.html")
 
 
-@app.route("/api/search", methods=["POST"])
-def search():
-    data = request.get_json(silent=True) or {}
-
-    query = data.get("query")
-    img = None
-
-    if not query:
-        image = request.files.get("image")
-
-        if image:
-            img = Image.open(image.stream).convert("RGB")
-        else:
-            return "Missing query or image", 400
-
-    query = None if img else query
-
+def _get_search_args() -> tuple[int, int]:
     page = request.args.get("page")
-    if not page:
-        return "Missing page", 400
-    page = int(page)
 
+    if not page:
+        abort(400, description="Missing page")
+
+    page = int(page)
     count = request.args.get("count")
     count = int(count) if count else IMAGE_COUNT
 
-    results = searchy.search(query, img, page, count)
+    return page, count
+
+
+@app.route("/api/search/text", methods=["POST"])
+def search_by_text():
+    data = request.get_json()
+    query = data.get("query")
+    page, count = _get_search_args()
+
+    results = searchy.search(page, count, query=query)
+    return results
+
+
+@app.route("/api/search/image", methods=["POST"])
+def search_by_image():
+    image = request.files.get("image")
+
+    if not image:
+        abort(400, description="Missing image")
+
+    img = Image.open(image.stream).convert("RGB")
+    page, count = _get_search_args()
+
+    results = searchy.search(page, count, image=img)
+    return results
+
+
+@app.route("/api/search/name", methods=["POST"])
+def search_by_name():
+    data = request.get_json()
+    name = data.get("name")
+    page, count = _get_search_args()
+
+    results = searchy.search_name(page, count, name)
     return results
 
 

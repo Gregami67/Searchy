@@ -164,12 +164,32 @@ class Searchy:
             logger.info("\nStopped watching directory.")
         observer.join()
 
+    def _search_helper(self, page: int, count: int, vector_bytes: bytes):
+        offset = (page - 1) * count
+        k = offset + count
+
+        search_query = (
+            Query("*=>[KNN $k @image_embed $vec]")
+            .paging(offset, count)
+            .return_fields("name")
+        )
+
+        results = self.vk.ft("idx:images").search(
+            search_query,
+            query_params={
+                "k": k,
+                "vec": vector_bytes,
+            },
+        )
+
+        return results
+
     def search(
         self,
-        query: str | None,
-        image: Image.Image | None,
         page: int,
         count: int,
+        query: str | None = None,
+        image: Image.Image | None = None,
     ) -> list[str]:
         logger.debug(f"Query to search is: {query}")
 
@@ -200,19 +220,25 @@ class Searchy:
             )
 
         vector_bytes = embeds.tobytes()
-        num_images = self.vk.get("image_count")
-        num_images = int(num_images.decode()) if num_images else 1
-        num_images = 1 if num_images == 0 else num_images
+        results = self._search_helper(page, count, vector_bytes)
 
-        page_size = count * page
-        search_query = (
-            Query(f"*=>[KNN {num_images} @image_embed $vec AS vector_distance]")
-            .paging(page_size - count, page_size)
-            .return_fields("name", "vector_distance")
-        )
+        return [result.name for result in results.docs]
 
-        results = self.vk.ft("idx:images").search(
-            search_query, query_params={"vec": vector_bytes}
-        )
+    def search_name(self, page: int, count: int, name: str) -> list[str]:
+        logger.debug(f"Name to search is:{name}")
+
+        query = Query(f"@name:{{{name}}}").no_content()
+        result = self.vk.ft("idx:images").search(query)
+
+        if not result.docs:
+            return []
+
+        image_hash = result.docs[0].id
+        vector_bytes = self.vk.hget(image_hash, "image_embed")
+
+        if not vector_bytes:
+            return []
+
+        results = self._search_helper(page, count, vector_bytes)
 
         return [result.name for result in results.docs]
