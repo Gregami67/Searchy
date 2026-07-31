@@ -1,6 +1,6 @@
 services:
   valkey:
-    image: valkey/valkey-bundle:9.0-alpine
+    image: valkey/valkey-bundle:9.1.2-alpine
     restart: unless-stopped
     ports:
       - 6379:6379
