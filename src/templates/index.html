@@ -302,6 +302,32 @@
 
         #viewer-overlay.active { display: flex; }
 
+        /* Search by name button */
+        #search-by-name-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 22px;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 600;
+            background: var(--accent);
+            color: #fff;
+            cursor: pointer;
+            z-index: 1001;
+            display: none;
+            transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+        }
+
+        #search-by-name-btn:hover {
+            background: #6a5de0;
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+
+        #search-by-name-btn:active { transform: scale(0.97); }
+        #search-by-name-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
         #viewer-img {
             max-width: 92vw;
             max-height: 92vh;
@@ -359,6 +385,9 @@
         <div id="viewer-overlay">
             <img id="viewer-img" src="" alt="">
         </div>
+
+        <!-- Search by name button (fixed top-right, shown when viewer is open) -->
+        <button id="search-by-name-btn">Search by this image</button>
     </div>
 
     <script>
@@ -619,17 +648,18 @@
         // --- Image viewer with zoom ---
         const overlay = document.getElementById('viewer-overlay');
         const viewerImg = document.getElementById('viewer-img');
-        let viewerZoom = 1;
-        let isDragging = false;
-        let dragStartX, dragStartY, translateX = 0, translateY = 0;
+        const searchByNameBtn = document.getElementById('search-by-name-btn');
+        let currentImageName = '';
 
-        function openViewer(src) {
+        function openViewer(src, imageName) {
             viewerImg.src = src;
+            currentImageName = imageName || '';
             overlay.classList.add('active');
             document.body.style.overflow = 'hidden';
             viewerZoom = 1;
             translateX = 0;
             translateY = 0;
+            searchByNameBtn.style.display = 'block';
             updateViewerTransform();
         }
 
@@ -639,6 +669,7 @@
             viewerZoom = 1;
             translateX = 0;
             translateY = 0;
+            searchByNameBtn.style.display = 'none';
             updateViewerTransform();
         }
 
@@ -647,6 +678,8 @@
         }
 
         let pendingTabSwitch = false;
+        let isDragging = false;
+        let dragStartX, dragStartY, translateX = 0, translateY = 0;
 
         document.addEventListener('click', (e) => {
             // If tab was just switched, ignore the click momentarily
@@ -670,8 +703,44 @@
             const clickedImg = e.target.matches('img') ? e.target : parentItem?.querySelector('img');
             
             if (parentItem && clickedImg) {
-                openViewer(clickedImg.src);
+                openViewer(clickedImg.src, clickedImg.alt);
                 return;
+            }
+        });
+
+        // Search by name button
+        searchByNameBtn.addEventListener('click', async () => {
+            if (!currentImageName || searchByNameBtn.disabled) return;
+
+            currentPage = 1;
+            hasMore = true;
+            searchByNameBtn.disabled = true;
+            searchByNameBtn.textContent = 'Searching...';
+            closeViewer();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            try {
+                const res = await fetch(`/api/search/name?page=${currentPage}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({name: currentImageName})
+                });
+
+                if (res.status === 400) {
+                    showEmptyMessage(currentImageName);
+                    return;
+                }
+
+                const data = await res.json();
+                hasMore = data.length >= Searchy.COUNT;
+                if (data.length === 0) {
+                    showEmptyMessage(currentImageName);
+                } else {
+                    showGallery(data);
+                }
+            } finally {
+                searchByNameBtn.disabled = false;
+                searchByNameBtn.textContent = 'Search by this image';
             }
         });
 
