@@ -5,76 +5,524 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clip Search</title>
     <style>
+        :root {
+            --bg: #0f0f10;
+            --surface: #1a1a1c;
+            --surface-hover: #232326;
+            --border: #2e2e33;
+            --accent: #7c6ef0;
+            --accent-glow: rgba(124, 110, 240, 0.25);
+            --text: #e8e6f0;
+            --text-dim: #8a8896;
+            --radius: 14px;
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #1a1a1a; color: #e0e0e0; min-height: 100vh; }
-        .search-container { display: flex; justify-content: center; padding: 60px 20px 40px; }
-        .search-form { display: flex; gap: 8px; width: 100%; max-width: 500px; }
-        .search-input { flex: 1; padding: 12px 16px; border: none; border-radius: 8px; font-size: 16px; background: #2a2a2a; color: #e0e0e0; outline: none; }
-        .search-input:focus { box-shadow: 0 0 0 2px #4a9eff; }
-        .search-input::placeholder { color: #666; }
-        .search-btn { padding: 12px 24px; border: none; border-radius: 8px; font-size: 16px; background: #4a9eff; color: white; cursor: pointer; transition: background 0.2s; }
-        .search-btn:hover { background: #3a8eef; }
-        .search-btn:disabled { opacity: 0.5; cursor: wait; }
-        .gallery { padding: 20px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; max-width: 1400px; margin: 0 auto; }
-        .gallery-item { display: flex; align-items: center; justify-content: center; }
-        .gallery-item img { width: 100%; object-fit: contain; cursor: zoom-in; }
-        @media (max-width: 1200px) {
-            .gallery { grid-template-columns: repeat(4, 1fr); }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
         }
-        @media (max-width: 960px) {
-            .gallery { grid-template-columns: repeat(3, 1fr); }
+
+        .hero {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 80px 20px 30px;
+            text-align: center;
         }
+
+        .hero h1 {
+            font-size: 42px;
+            font-weight: 700;
+            letter-spacing: -1.5px;
+            background: linear-gradient(135deg, #b8aeff, var(--accent), #a69bf5);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .hero p {
+            color: var(--text-dim);
+            font-size: 15px;
+            margin-bottom: 36px;
+        }
+
+        /* Segment control */
+        .tabs {
+            display: flex;
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 4px;
+            gap: 4px;
+            border: 1px solid var(--border);
+            margin-bottom: 30px;
+        }
+
+        .tab {
+            padding: 10px 28px;
+            border-radius: 9px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text-dim);
+            background: transparent;
+            border: none;
+            user-select: none;
+        }
+
+        .tab:hover { color: var(--text); }
+
+        .tab.active {
+            background: var(--accent);
+            color: #fff;
+            box-shadow: 0 2px 12px var(--accent-glow);
+        }
+
+        /* Panels */
+        .panel { display: none; width: 100%; max-width: 560px; }
+        .panel.active { display: block; }
+
+        /* Text search form */
+        .search-form {
+            display: flex;
+            gap: 8px;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 14px 20px;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 15px;
+            background: var(--surface);
+            color: var(--text);
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .search-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .search-input::placeholder { color: var(--text-dim); opacity: 0.7; }
+
+        .search-btn {
+            padding: 14px 32px;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 15px;
+            font-weight: 600;
+            background: var(--accent);
+            color: #fff;
+            cursor: pointer;
+            transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+            white-space: nowrap;
+        }
+
+        .search-btn:hover {
+            background: #6a5de0;
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+
+        .search-btn:active { transform: scale(0.97); }
+        .search-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+        /* Image upload */
+        .drop-zone {
+            width: 100%;
+            max-width: 560px;
+            margin: 0 auto;
+            border: 2px dashed var(--border);
+            border-radius: var(--radius);
+            padding: 48px 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            background: var(--surface);
+        }
+
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: var(--accent);
+            background: var(--surface-hover);
+            box-shadow: 0 0 0 4px var(--accent-glow);
+        }
+
+        .drop-icon {
+            font-size: 36px;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .drop-zone p {
+            color: var(--text-dim);
+            font-size: 14px;
+            margin-bottom: 18px;
+        }
+
+        .upload-btn {
+            padding: 10px 26px;
+            border: 1.5px solid var(--accent);
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            background: transparent;
+            color: var(--accent);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .upload-btn:hover {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .preview-container {
+            display: none;
+            margin-top: 20px;
+            position: relative;
+        }
+
+        .preview-container.visible { display: block; }
+
+        .preview-img {
+            max-height: 240px;
+            border-radius: 10px;
+            border: 1.5px solid var(--border);
+        }
+
+        .remove-preview {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: #e03142;
+            color: #fff;
+            border: none;
+            font-size: 14px;
+            cursor: search-btn;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .submit-preview {
+            margin-top: 16px;
+            padding: 12px 36px;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 15px;
+            font-weight: 600;
+            background: var(--accent);
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .submit-preview:hover {
+            background: #6a5de0;
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+
+        /* Gallery */
+        .gallery-wrapper { padding: 10px 0 30px; }
+
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 14px;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .gallery-item {
+            border-radius: 10px;
+            overflow: hidden;
+            background: var(--surface);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .gallery-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+        }
+
+        .gallery-item img {
+            width: 100%;
+            aspect-ratio: 1;
+            object-fit: contain;
+            cursor: zoom-in;
+            display: block;
+        }
+
+        @media (max-width: 1200px) { .gallery { grid-template-columns: repeat(4, 1fr); } }
+        @media (max-width: 900px) { .gallery { grid-template-columns: repeat(3, 1fr); } }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-dim);
+            font-size: 14px;
+        }
+
+        /* Loader */
+        #loader {
+            text-align: center;
+            padding: 30px;
+            color: var(--text-dim);
+            font-size: 13px;
+            letter-spacing: 0.5px;
+        }
+
         @media (max-width: 720px) {
-            .gallery { grid-template-columns: repeat(2, 1fr); padding: 10px; gap: 16px; }
-            .gallery-item { margin-bottom: 0; }
-            .search-container { padding: 30px 10px 20px; }
-            .search-form { max-width: 100%; }
+            .hero { padding: 50px 16px 20px; }
+            .hero h1 { font-size: 30px; }
+            .search-form { flex-direction: column; }
+            .search-btn, .upload-btn, .submit-preview { width: 100%; text-align: center; }
         }
-        .gallery-item:hover { opacity: 0.9; }
-        #viewer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 1000; display: none; cursor: zoom-in; justify-content: center; align-items: center; touch-action: none; }
-        #viewer-overlay.active { display: flex; }
-        #viewer-img { max-width: 90vw; max-height: 90vh; object-fit: contain; transform-origin: center center; user-select: none; -webkit-user-drag: none; margin: auto; touch-action: none; }
-        #loader { text-align: center; padding: 40px; color: #666; font-size: 14px; }
-        #results { display: none; }
     </style>
 </head>
 <body>
-    <div class="search-container">
-        <form class="search-form" id="searchForm">
-            <input type="text" name="q" id="searchInput" class="search-input" placeholder="Describe what you're looking for..." autofocus>
-            <button type="submit" class="search-btn" id="searchBtn">Search</button>
-        </form>
+    <div class="hero">
+        <h1>Clip Search</h1>
+        <p>Search images by text description or upload a photo</p>
+
+        <div class="tabs" role="tablist">
+            <button class="tab active" data-panel="text" role="tab">Text Search</button>
+            <button class="tab" data-panel="image" role="tab">Image Search</button>
+        </div>
     </div>
 
-    <div id="results"></div>
-    <div id="loader" style="display:none;">Loading...</div>
+    <div class="hero">
+        <!-- Text search panel -->
+        <div class="panel active" id="panel-text">
+            <form class="search-form" id="textForm">
+                <input type="text" name="q" id="searchInput" class="search-input" placeholder="Describe what you're looking for..." autofocus>
+                <button type="submit" class="search-btn" id="searchBtn">Search</button>
+            </form>
+        </div>
 
-    <div id="viewer-overlay">
-        <img id="viewer-img" src="" alt="">
+        <!-- Image search panel -->
+        <div class="panel" id="panel-image">
+            <input type="file" id="imageFileInput" accept="image/*" hidden>
+            <div class="drop-zone" id="dropZone">
+                <span class="drop-icon">&#128248;</span>
+                <p>Drag & drop an image here<br>or click to browse</p>
+                <button type="button" class="upload-btn">Browse Files</button>
+            </div>
+
+            <div class="preview-container" id="previewContainer">
+                <img class="preview-img" id="previewImg" src="" alt="Preview">
+                <button class="remove-preview" id="removePreview">&#10005;</button>
+                <br>
+                <button type="button" class="submit-preview" id="submitImageBtn">Search by this image</button>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div class="gallery-wrapper" id="results">
+            <div id="emptyState" class="empty-state" style="display:none;"></div>
+        </div>
+        <div id="loader" style="display:none;">Loading results...</div>
+
+        <!-- Viewer overlay -->
+        <div id="viewer-overlay">
+            <img id="viewer-img" src="" alt="">
+        </div>
     </div>
 
     <script>
         const resultsEl = document.getElementById('results');
         const loader = document.getElementById('loader');
-        const form = document.getElementById('searchForm');
-        const input = document.getElementById('searchInput');
         let currentQuery = '';
         let currentPage = 1;
         let hasMore = false;
         let isLoading = false;
+        let uploadedFile = null;
+
+        Searchy = { COUNT: 50 };
+
+        // Tab switching
+        const tabs = document.querySelectorAll('.tab');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('panel-' + tab.dataset.panel).classList.add('active');
+                currentPage = 1;
+                hasMore = true;
+            });
+        });
+
+        // --- Text Search ---
+        const textForm = document.getElementById('textForm');
+        const textInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+
+        async function doTextSearch(query, page) {
+            textInput.value = query;
+            currentQuery = query;
+            currentPage = page;
+
+            searchBtn.disabled = true;
+            searchBtn.textContent = 'Searching...';
+
+            try {
+                const res = await fetch(`/api/search/text?page=${page}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({query})
+                });
+
+                if (res.status === 400) {
+                    showEmptyMessage(query);
+                    return '';
+                }
+
+                const data = await res.json();
+                if (page === 1) {
+                    hasMore = data.length >= Searchy.COUNT;
+                    if (data.length === 0) {
+                        showEmptyMessage(query);
+                    } else {
+                        showGallery(data);
+                    }
+                }
+                return data;
+            } finally {
+                searchBtn.disabled = false;
+                searchBtn.textContent = 'Search';
+            }
+        }
+
+        textForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const q = textInput.value.trim();
+            if (!q || tabActive() !== 'text') return;
+            currentPage = 1;
+            hasMore = true;
+            doTextSearch(q, 1);
+        });
+
+        let debounceTimer;
+        textInput.addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            const q = textInput.value.trim();
+            if (!q || tabActive() !== 'text') return;
+            debounceTimer = setTimeout(() => {
+                currentPage = 1;
+                hasMore = true;
+                doTextSearch(q, 1);
+            }, 500);
+        });
+
+        // --- Image Search (drag & drop) ---
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('imageFileInput');
+        const previewContainer = document.getElementById('previewContainer');
+        const previewImg = document.getElementById('previewImg');
+        const removePreview = document.getElementById('removePreview');
+        const submitImageBtn = document.getElementById('submitImageBtn');
+
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) handleFile(file);
+        });
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files[0]) handleFile(fileInput.files[0]);
+        });
+
+        function handleFile(file) {
+            uploadedFile = file;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImg.src = e.target.result;
+                dropZone.style.display = 'none';
+                previewContainer.classList.add('visible');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        removePreview.addEventListener('click', () => {
+            uploadedFile = null;
+            fileInput.value = '';
+            previewImg.src = '';
+            dropZone.style.display = '';
+            previewContainer.classList.remove('visible');
+        });
+
+        submitImageBtn.addEventListener('click', async () => {
+            if (!uploadedFile) return;
+            currentPage = 1;
+            hasMore = true;
+
+            submitImageBtn.disabled = true;
+            submitImageBtn.textContent = 'Searching...';
+
+            try {
+                const formData = new FormData();
+                formData.append('image', uploadedFile);
+
+                const res = await fetch(`/api/search/image?page=${currentPage}`, { method: 'POST', body: formData });
+
+                if (res.status === 400) {
+                    showEmptyMessage('uploaded image');
+                    return;
+                }
+
+                const data = await res.json();
+                hasMore = data.length >= Searchy.COUNT;
+                if (data.length === 0) {
+                    showEmptyMessage('uploaded image');
+                } else {
+                    showGallery(data);
+                }
+            } finally {
+                submitImageBtn.disabled = false;
+                submitImageBtn.textContent = 'Search by this image';
+            }
+        });
+
+        // --- Helpers ---
+        function tabActive() {
+            const active = document.querySelector('.tab.active');
+            return active ? active.dataset.panel : null;
+        }
 
         function showEmptyMessage(query) {
+            clearGallery();
             resultsEl.style.display = 'block';
-            resultsEl.innerHTML = '<p style="text-align:center; padding:40px; color:#666;">No results found for "' + query + '"</p>';
+            document.getElementById('emptyState').textContent = `No results found for "${query}"`;
+            document.getElementById('emptyState').style.display = 'block';
             hasMore = false;
         }
 
-        function appendGallery(imagePaths) {
+        function showGallery(imagePaths) {
+            clearGallery();
             resultsEl.style.display = 'block';
-            if (imagePaths.length === 0) {
-                hasMore = false;
-                return;
-            }
 
             let html = '';
             for (const path of imagePaths) {
@@ -82,115 +530,71 @@
                     + '<img src="images/' + path + '" alt="' + path + '">'
                     + '</div>';
             }
-
-            if (!resultsEl.querySelector('.gallery')) {
-                resultsEl.innerHTML = '<div class="gallery"></div>';
-            }
-            const gallery = resultsEl.querySelector('.gallery');
-            gallery.insertAdjacentHTML('beforeend', html);
-            hasMore = imagePaths.length >= Searchy.COUNT;
+            const gallery = document.createElement('div');
+            gallery.className = 'gallery';
+            gallery.innerHTML = html;
+            resultsEl.appendChild(gallery);
         }
 
-        async function doSearch(query, page) {
-            input.value = query;
-            currentQuery = query;
-            currentPage = page;
-
-            const btn = document.getElementById('searchBtn');
-            btn.disabled = true;
-            btn.textContent = 'Searching...';
-
-            try {
-                const res = await fetch(`/api/search?page=${page}`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({query})
-                });
-                if (res.status === 400) {
-                    showEmptyMessage(query);
-                    return;
-                }
-                const data = await res.json();
-                if (page === 1) {
-                    hasMore = data.length >= Searchy.COUNT;
-                    if (data.length === 0) {
-                        showEmptyMessage(query);
-                    }
-                    appendGallery(data);
-                } else {
-                    hasMore = false;
-                }
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Search';
-            }
+        function clearGallery() {
+            resultsEl.innerHTML = '<div id="emptyState" class="empty-state" style="display:none;"></div>';
         }
 
-        function showEmptyMessage(query) {
-            resultsEl.style.display = 'block';
-            resultsEl.innerHTML = '<p style="text-align:center; padding:40px; color:#666;">No results found for "' + query + '"</p>';
-            hasMore = false;
-        }
-
-        const Searchy = { COUNT: 50 };
-
+        // --- Infinite scroll ---
         async function loadMore() {
             if (isLoading || !hasMore) return;
             isLoading = true;
             loader.style.display = 'block';
-
             currentPage++;
+
             try {
-                const res = await fetch(`/api/search?page=${currentPage}`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({query: currentQuery})
-                });
+                let res;
+                if (tabActive() === 'image') {
+                    const formData = new FormData();
+                    formData.append('image', uploadedFile);
+                    res = await fetch(`/api/search/image?page=${currentPage}`, { method: 'POST', body: formData });
+                } else {
+                    res = await fetch(`/api/search/text?page=${currentPage}`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({query: currentQuery})
+                    });
+                }
+
                 const data = await res.json();
-                appendGallery(data);
+                hasMore = data.length >= Searchy.COUNT;
+
+                if (data.length > 0) {
+                    const gallery = document.createElement('div');
+                    gallery.className = 'gallery';
+                    let html = '';
+                    for (const path of data) {
+                        html += '<div class="gallery-item">'
+                            + '<img src="images/' + path + '" alt="' + path + '">'
+                            + '</div>';
+                    }
+                    gallery.innerHTML = html;
+                    resultsEl.appendChild(gallery);
+                } else {
+                    hasMore = false;
+                }
             } finally {
                 isLoading = false;
                 if (!hasMore) loader.style.display = 'none';
             }
         }
 
-        // Infinite scroll using IntersectionObserver
         let sentinel = document.createElement('div');
         sentinel.id = 'scroll-sentinel';
         sentinel.style.height = '1px';
         document.body.appendChild(sentinel);
 
         const observer = new IntersectionObserver((entries) => {
-            if (entries[0].isIntersecting && hasMore) {
-                loadMore();
-            }
+            if (entries[0].isIntersecting && hasMore) loadMore();
         }, { rootMargin: '400px' });
         observer.observe(sentinel);
 
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const q = input.value.trim();
-            if (!q) return;
-            currentPage = 1;
-            hasMore = true;
-            resultsEl.innerHTML = '<div class="gallery"></div>';
-            doSearch(q, 1);
-        });
-
-        let debounceTimer;
-        input.addEventListener('input', () => {
-            clearTimeout(debounceTimer);
-            const q = input.value.trim();
-            if (!q) return;
-            debounceTimer = setTimeout(() => {
-                currentPage = 1;
-                hasMore = true;
-                resultsEl.innerHTML = '<div class="gallery"></div>';
-                doSearch(q, 1);
-            }, 500);
-        });
-
-        // Image viewer with zoom
+        // --- Image viewer with zoom ---
         const overlay = document.getElementById('viewer-overlay');
         const viewerImg = document.getElementById('viewer-img');
         let viewerZoom = 1;
@@ -221,23 +625,8 @@
         }
 
         document.addEventListener('click', (e) => {
-            // Open viewer on gallery image click
-            if (e.target.closest('.gallery-item img')) {
-                const src = e.target.src;
-                openViewer(src);
-                return;
-            }
-            // Close viewer when clicking overlay background (not image)
-            if (e.target === overlay) {
-                if (viewerZoom > 1) {
-                    viewerZoom = 1;
-                    translateX = 0;
-                    translateY = 0;
-                    updateViewerTransform();
-                } else {
-                    closeViewer();
-                }
-            }
+            if (e.target.closest('.gallery-item img')) openViewer(e.target.src);
+            else if (e.target === overlay && viewerZoom <= 1) closeViewer();
         });
 
         document.addEventListener('wheel', (e) => {
@@ -275,36 +664,17 @@
             if (e.key === 'Escape') closeViewer();
         });
 
-        // Touch gestures for mobile
+        // Touch gestures
         let lastTouchDist = 0;
-        let lastTouchCenter = { x: 0, y: 0 };
-
-        function getTouchDist(e) {
-            const dx = e.touches[0].clientX - e.touches[1].clientX;
-            const dy = e.touches[0].clientY - e.touches[1].clientY;
-            return Math.sqrt(dx * dx + dy * dy);
-        }
-
-        function getTouchCenter(e) {
-            return {
-                x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
-                y: (e.touches[0].clientY + e.touches[1].clientY) / 2
-            };
-        }
 
         overlay.addEventListener('touchstart', (e) => {
-            if (!overlay.classList.contains('active')) return;
-            if (e.target !== viewerImg) return;
-
+            if (!overlay.classList.contains('active') || e.target !== viewerImg) return;
             if (e.touches.length === 1 && viewerZoom > 1) {
-                // Pan with single finger when zoomed
                 isDragging = true;
                 dragStartX = e.touches[0].clientX - translateX;
                 dragStartY = e.touches[0].clientY - translateY;
             } else if (e.touches.length === 2) {
-                // Pinch to zoom
                 lastTouchDist = getTouchDist(e);
-                lastTouchCenter = getTouchCenter(e);
                 isDragging = false;
             }
         }, { passive: false });
@@ -312,15 +682,13 @@
         overlay.addEventListener('touchmove', (e) => {
             if (!overlay.classList.contains('active')) return;
             e.preventDefault();
-
             if (viewerZoom > 1 && e.touches.length === 1 && isDragging) {
                 translateX = e.touches[0].clientX - dragStartX;
                 translateY = e.touches[0].clientY - dragStartY;
                 updateViewerTransform();
             } else if (e.touches.length === 2) {
                 const newDist = getTouchDist(e);
-                const scale = newDist / lastTouchDist;
-                viewerZoom *= scale;
+                viewerZoom *= newDist / lastTouchDist;
                 viewerZoom = Math.max(0.3, Math.min(viewerZoom, 10));
                 updateViewerTransform();
                 lastTouchDist = newDist;
@@ -330,12 +698,14 @@
         overlay.addEventListener('touchend', (e) => {
             if (!overlay.classList.contains('active')) return;
             isDragging = false;
-
-            // Double tap or tap on uncrommed image to toggle close
-            if (e.touches.length === 0 && viewerZoom <= 1) {
-                closeViewer();
-            }
+            if (e.touches.length === 0 && viewerZoom <= 1) closeViewer();
         });
+
+        function getTouchDist(e) {
+            const dx = e.touches[0].clientX - e.touches[1].clientX;
+            const dy = e.touches[0].clientY - e.touches[1].clientY;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
     </script>
 </body>
 </html>
