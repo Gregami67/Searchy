@@ -107,7 +107,7 @@ class Searchy:
     def save_embeds(
         self,
         images: list[tuple[str, str]],
-        embeds: torch.Tensor | None,
+        embeds: np.ndarray | None,
     ) -> None:
         info = f"Found {len(images)} embedding(s) to save"
 
@@ -119,9 +119,8 @@ class Searchy:
 
         pipe = self.vk.pipeline()
         # TODO: Make tobytes here?
-        embeds_np = embeds.detach().cpu().numpy().astype(np.float32)
 
-        for image, embed in zip(images, embeds_np):
+        for image, embed in zip(images, embeds):
             hash, name = image
 
             pipe.hset(
