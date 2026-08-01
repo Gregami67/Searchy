@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools >= 80.0.0"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "searchy"
@@ -29,3 +29,9 @@ dependencies = [
 [project.scripts]
 searchy-dev = "wsgi:run_dev"
 searchy-prod = "wsgi:run_prod"
+
+[tool.hatch.build.targets.sdist]
+include = ["src"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
