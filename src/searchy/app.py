@@ -13,7 +13,7 @@ from watchdog.observers import Observer
 
 import db
 from searchy.attributes import BATCH_SIZE, VALID_EXTENSIONS
-from searchy.tools import get_images_to_update
+from searchy.tools import delete_image_thumbs, get_images_to_update, create_image_thumbs
 
 logger = logging.getLogger("searchy")
 
@@ -32,8 +32,9 @@ class ImageFolderHandler(FileSystemEventHandler):
             logger.info(f"Detected new image: {event.src_path}")
 
             (hashes, paths), _ = get_images_to_update(self.searchy.vk, self.image_dir)
+            create_image_thumbs(paths)
             embeds = self.searchy.create_embeds(paths)
-            images = [(hash, path.name) for hash, path in zip(hashes, paths)]
+            images = [(hash, path.stem) for hash, path in zip(hashes, paths)]
 
             self.searchy.save_embeds(images, embeds)
 
@@ -41,6 +42,7 @@ class ImageFolderHandler(FileSystemEventHandler):
         if not event.is_directory and self._is_image(event.src_path):
             logger.info(f"Detected deleted image: {event.src_path}")
 
+            delete_image_thumbs([Path(str(event.src_path))])
             _, hashes = get_images_to_update(self.searchy.vk, self.image_dir)
             self.searchy.delete_embeds(hashes)
 
@@ -64,8 +66,11 @@ class Searchy:
             vk=self.vk,
             image_dir=image_dir,
         )
+
+        create_image_thumbs(paths)
+
         embeds = self.create_embeds(paths)
-        images_to_add = [(hash, path.name) for hash, path in zip(hashes, paths)]
+        images_to_add = [(hash, path.stem) for hash, path in zip(hashes, paths)]
 
         self.save_embeds(images_to_add, embeds)
         self.delete_embeds(hashes_to_delete)

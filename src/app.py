@@ -1,13 +1,12 @@
 import logging
 import threading
 
-import torch
 from flask import Flask, abort, render_template, request, send_from_directory
 from flask.logging import default_handler
 from PIL import Image
 
 from searchy import Searchy
-from searchy.attributes import DEBUG, IMAGE_COUNT, IMAGE_DIR, WATCHDOG
+from searchy.attributes import DEBUG, IMAGE_COUNT, IMAGE_DIR, THUMB_DIR, WATCHDOG
 
 app = Flask(__name__)
 
@@ -77,3 +76,8 @@ def search_by_name():
 @app.route("/images/<path:filename>")
 def serve_image(filename):
     return send_from_directory(IMAGE_DIR, filename)
+
+
+@app.route("/thumbs/<path:filename>")
+def serve_thumb(filename):
+    return send_from_directory(THUMB_DIR, filename)

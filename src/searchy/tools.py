@@ -1,9 +1,14 @@
 import hashlib
-from concurrent.futures import ThreadPoolExecutor
+import logging
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from pathlib import Path
 
 import valkey
-from searchy.attributes import VALID_EXTENSIONS
+from PIL import Image
+
+from searchy.attributes import THUMB_DIR, VALID_EXTENSIONS
+
+logger = logging.getLogger("searchy")
 
 
 def _get_image_paths(image_dir: str) -> list[Path]:
@@ -33,6 +38,33 @@ def _get_image_hashes(image_paths: list[Path]) -> list[str]:
 
     with ThreadPoolExecutor() as executor:
         return list(executor.map(get_image_hash, image_paths))
+
+
+def _create_image_thumb(path: Path) -> None:
+    with Image.open(path) as img:
+        save_path = THUMB_DIR / f"{path.stem}.jpg"
+
+        if img.mode in ("RGBA", "P", "LA") or (
+            img.mode == "M" and "transparency" in img.info
+        ):
+            img = img.convert("RGB")
+
+        img.thumbnail((512, 512))
+        img.save(save_path, "JPEG", quality=75)
+
+
+def create_image_thumbs(image_paths: list[Path]) -> None:
+    logger.info(f"Created {len(image_paths)} of thumbnails")
+    with ProcessPoolExecutor() as executor:
+        executor.map(_create_image_thumb, image_paths)
+
+
+def delete_image_thumbs(image_paths: list[Path]):
+    for image_path in image_paths:
+        thumb_path = THUMB_DIR / f"{image_path.stem}.jpg"
+        logger.info(f"Deleted {len(image_paths)} of thumbnails")
+
+        thumb_path.unlink(missing_ok=True)
 
 
 def get_images_to_update(

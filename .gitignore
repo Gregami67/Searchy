@@ -2,6 +2,7 @@
 .env
 .venv/
 images/
+thumbs/
 __pycache__/
 build/
 *.egg-info/
