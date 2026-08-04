@@ -9,9 +9,10 @@ logger = logging.getLogger("searchy")
 vk = valkey.Valkey(os.getenv("VALKEY_HOST", "localhost"))
 
 fields = [
-    TagField("name"),
+    TagField("original_name"),
+    TagField("thumb_name"),
     VectorField(
-        "image_embed",
+        "embed",
         "FLAT",
         {"DIM": 512, "TYPE": "FLOAT32", "DISTANCE_METRIC": "COSINE"},
     ),
@@ -19,7 +20,11 @@ fields = [
 
 try:
     vk.ft("idx:images").create_index(
-        fields=fields, definition=IndexDefinition(["image:"], index_type=IndexType.HASH)
+        fields=fields,
+        definition=IndexDefinition(
+            ["image:"],
+            index_type=IndexType.HASH,
+        ),
     )
     logger.info("Created images index")
 except valkey.ResponseError as e:

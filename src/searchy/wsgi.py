@@ -2,7 +2,7 @@ from searchy.attributes import DEBUG
 
 
 def run_dev():
-    from app import app
+    from searchy.app import app
 
     app.run(debug=DEBUG, host="0.0.0.0", port=5000, use_reloader=False)
 

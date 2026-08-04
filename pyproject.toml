@@ -27,11 +27,11 @@ dependencies = [
 ]
 
 [project.scripts]
-searchy-dev = "wsgi:run_dev"
-searchy-prod = "wsgi:run_prod"
+searchy-dev = "searchy.wsgi:run_dev"
+searchy-prod = "searchy.wsgi:run_prod"
 
 [tool.hatch.build.targets.sdist]
 include = ["src"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src"]
+packages = ["src/searchy"]
