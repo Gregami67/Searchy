@@ -4,7 +4,7 @@ from pathlib import Path
 DEBUG = True if os.getenv("DEBUG") == "true" else False
 WATCHDOG = True if os.getenv("WATCHDOG") == "true" else False
 
-BASE_DIR = Path(__file__).resolve().parents[2]
+BASE_DIR = Path(__file__).resolve().parent
 
 THUMB_DIR = BASE_DIR / "thumbs"
 THUMB_DIR.mkdir(parents=True, exist_ok=True)

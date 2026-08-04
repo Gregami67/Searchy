@@ -12,7 +12,8 @@ app = Flask(__name__)
 if not IMAGE_DIR:
     raise ValueError("Environment variable 'IMAGE_DIR' is missing or not set")
 
-searchy = Searchy(Path(IMAGE_DIR))
+IMAGE_DIR = Path(IMAGE_DIR)
+searchy = Searchy(IMAGE_DIR)
 
 if WATCHDOG:
     t = threading.Thread(target=searchy.watch, args=[IMAGE_DIR], daemon=True)

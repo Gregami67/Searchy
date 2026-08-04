@@ -1,5 +1,6 @@
 import time
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 import torch
@@ -36,6 +37,10 @@ class ImageFolderHandler(FileSystemEventHandler):
             hash_paths_to_add, _ = get_images_to_update(self.searchy.vk, self.dir_path)
             hash_thumbs = create_thumbs(hash_paths_to_add)
 
+            if len(hash_paths_to_add) != len(hash_thumbs):
+                thumbs_set = hash_paths_to_add.keys() - hash_thumbs.keys()
+                hash_paths_to_add = {h: hash_paths_to_add[h] for h in thumbs_set}
+
             embeds = self.searchy.create_embeds(list(hash_paths_to_add.values()))
             images_to_add = {
                 hash: path.stem for hash, path in hash_paths_to_add.items()
@@ -61,7 +66,7 @@ class Searchy:
         self,
         dir_path: Path,
         model_name: str = "openai/clip-vit-base-patch32",
-        device: str | None = None,
+        device: Optional[str] = None,
     ) -> None:
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -75,6 +80,11 @@ class Searchy:
         hash_paths_to_add, hashes_to_delete = get_images_to_update(self.vk, dir_path)
         hash_thumbs = create_thumbs(hash_paths_to_add)
 
+        if len(hash_paths_to_add) != len(hash_thumbs):
+            logger.info("They are not the same size")
+            thumbs_set = hash_paths_to_add.keys() - hash_thumbs.keys()
+            hash_paths_to_add = {h: hash_paths_to_add[h] for h in thumbs_set}
+
         embeds = self.create_embeds(list(hash_paths_to_add.values()))
         images_to_add = {hash: path.stem for hash, path in hash_paths_to_add.items()}
 
@@ -83,7 +93,7 @@ class Searchy:
 
         logger.info("Searchy initialized")
 
-    def create_embeds(self, paths: list[Path]) -> np.ndarray | None:
+    def create_embeds(self, paths: list[Path]) -> Optional[np.ndarray]:
         info = f"Found {len(paths)} image(s) to embed"
 
         if not paths:
@@ -120,7 +130,7 @@ class Searchy:
         self,
         images: dict[str, str],
         thumbs: dict[str, str],
-        embeds: np.ndarray | None,
+        embeds: Optional[np.ndarray],
     ) -> None:
         info = f"Found {len(images)} embedding(s) to save"
 
@@ -206,8 +216,8 @@ class Searchy:
         self,
         page: int,
         count: int,
-        query: str | None = None,
-        image: Image.Image | None = None,
+        query: Optional[str] = None,
+        image: Optional[Image.Image] = None,
     ) -> list[str]:
         logger.debug(f"Query to search is: {query}")
 
