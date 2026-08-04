@@ -1,4 +1,4 @@
-from searchy.attributes import DEBUG
+from searchy.config import DEBUG
 
 
 def run_dev():

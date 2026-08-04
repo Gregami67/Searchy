@@ -1,11 +1,11 @@
-import logging
 import os
 
 import valkey
 from valkey.commands.search.field import TagField, VectorField
 from valkey.commands.search.indexDefinition import IndexDefinition, IndexType
 
-logger = logging.getLogger("searchy")
+from searchy.logging import logger
+
 vk = valkey.Valkey(os.getenv("VALKEY_HOST", "localhost"))
 
 fields = [

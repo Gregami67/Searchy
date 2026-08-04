@@ -1,5 +1,4 @@
 import hashlib
-import logging
 import uuid
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from pathlib import Path
@@ -8,9 +7,8 @@ from typing import Optional
 import valkey
 from PIL import Image, UnidentifiedImageError
 
-from searchy.attributes import THUMB_DIR, VALID_EXTENSIONS
-
-logger = logging.getLogger("searchy")
+from searchy.config import THUMB_DIR, VALID_EXTENSIONS
+from searchy.logging import logger
 
 
 def get_paths(dir_path: Path) -> list[Path]:

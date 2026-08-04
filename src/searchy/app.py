@@ -1,20 +1,18 @@
-import logging
 import threading
+from pathlib import Path
 
 from flask import Flask, abort, render_template, request, send_from_directory
-from flask.logging import default_handler
 from PIL import Image
 
 from searchy import Searchy
-from searchy.attributes import DEBUG, IMAGE_COUNT, IMAGE_DIR, THUMB_DIR, WATCHDOG
+from searchy.config import IMAGE_COUNT, IMAGE_DIR, THUMB_DIR, WATCHDOG
 
 app = Flask(__name__)
 
-logger = logging.getLogger("searchy")
-logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
-logger.addHandler(default_handler)
+if not IMAGE_DIR:
+    raise ValueError("Environment variable 'IMAGE_DIR' is missing or not set")
 
-searchy = Searchy(IMAGE_DIR)
+searchy = Searchy(Path(IMAGE_DIR))
 
 if WATCHDOG:
     t = threading.Thread(target=searchy.watch, args=[IMAGE_DIR], daemon=True)

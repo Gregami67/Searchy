@@ -1,4 +1,3 @@
-import logging
 import time
 from pathlib import Path
 
@@ -12,10 +11,9 @@ from watchdog.events import FileSystemEvent, FileSystemEventHandler
 from watchdog.observers import Observer
 
 from searchy import db
-from searchy.attributes import BATCH_SIZE, VALID_EXTENSIONS
+from searchy.config import BATCH_SIZE, VALID_EXTENSIONS
+from searchy.logging import logger
 from searchy.tools import create_thumbs, delete_thumbs, get_images_to_update
-
-logger = logging.getLogger("searchy")
 
 
 class ImageFolderHandler(FileSystemEventHandler):
@@ -39,10 +37,11 @@ class ImageFolderHandler(FileSystemEventHandler):
             hash_thumbs = create_thumbs(hash_paths_to_add)
 
             embeds = self.searchy.create_embeds(list(hash_paths_to_add.values()))
-            images_to_add = {hash: path.stem for hash, path in hash_paths_to_add.items()}
+            images_to_add = {
+                hash: path.stem for hash, path in hash_paths_to_add.items()
+            }
 
             self.searchy.save_embeds(images_to_add, hash_thumbs, embeds)
-
 
     def on_deleted(self, event: FileSystemEvent) -> None:
         if isinstance(event.src_path, bytes):
