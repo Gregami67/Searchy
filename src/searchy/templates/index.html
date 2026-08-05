@@ -235,11 +235,17 @@
 
         .gallery {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 14px;
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 0 20px;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 10px;
+            padding: 0 10px;
+        }
+
+        @media (min-width: 600px) {
+            .gallery {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                gap: 14px;
+                padding: 0 20px;
+            }
         }
 
         .gallery-item {
@@ -261,9 +267,6 @@
             cursor: zoom-in;
             display: block;
         }
-
-        @media (max-width: 1200px) { .gallery { grid-template-columns: repeat(4, 1fr); } }
-        @media (max-width: 900px) { .gallery { grid-template-columns: repeat(3, 1fr); } }
 
         /* Empty state */
         .empty-state {
@@ -376,19 +379,23 @@
         </div>
 
         <!-- Results -->
+        </div>
         <div class="gallery-wrapper" id="results">
             <div id="emptyState" class="empty-state" style="display:none;"></div>
+            <div class="gallery" id="galleryContainer"></div>
         </div>
         <div id="loader" style="display:none;">Loading results...</div>
 
-        <!-- Viewer overlay -->
-        <div id="viewer-overlay">
-            <img id="viewer-img" src="" alt="">
-        </div>
 
-        <!-- Search by name button (fixed top-right, shown when viewer is open) -->
-        <button id="search-by-name-btn">Search by this image</button>
+
+    <!-- Viewer overlay -->
+    <div id="viewer-overlay">
+        <img id="viewer-img" src="" alt="">
     </div>
+
+    <!-- Search by name button (fixed top-right, shown when viewer is open) -->
+    <button id="search-by-name-btn">Search by this image</button>
+
 
     <script>
         const resultsEl = document.getElementById('results');
@@ -572,23 +579,25 @@
         }
 
         function showGallery(data) {
-            clearGallery();
+            const gallery = document.getElementById('galleryContainer');
+            document.getElementById('emptyState').style.display = 'none';
             resultsEl.style.display = 'block';
-
+            
+            // Clear previous gallery items
+            gallery.innerHTML = '';
+            
             let html = '';
             for (let i = 0; i < data.original_name.length; i++) {
                 html += '<div class="gallery-item" data-original="' + data.original_name[i] + '">'
                     + '<img src="thumbs/' + data.thumb_name[i] + '" alt="' + data.thumb_name[i] + '">'
                     + '</div>';
             }
-            const gallery = document.createElement('div');
-            gallery.className = 'gallery';
             gallery.innerHTML = html;
-            resultsEl.appendChild(gallery);
         }
 
         function clearGallery() {
-            resultsEl.innerHTML = '<div id="emptyState" class="empty-state" style="display:none;"></div>';
+            document.getElementById('galleryContainer').innerHTML = '';
+            document.getElementById('emptyState').style.display = 'none';
         }
 
         // --- Infinite scroll ---
@@ -616,16 +625,14 @@
                 hasMore = data.original_name.length >= Searchy.COUNT;
 
                 if (data.original_name.length > 0) {
-                    const gallery = document.createElement('div');
-                    gallery.className = 'gallery';
+                    const gallery = document.getElementById('galleryContainer');
                     let html = '';
                     for (let i = 0; i < data.original_name.length; i++) {
                         html += '<div class="gallery-item" data-original="' + data.original_name[i] + '">'
                             + '<img src="thumbs/' + data.thumb_name[i] + '" alt="' + data.thumb_name[i] + '">'
                             + '</div>';
                     }
-                    gallery.innerHTML = html;
-                    resultsEl.appendChild(gallery);
+                    gallery.insertAdjacentHTML('beforeend', html);
                 } else {
                     hasMore = false;
                 }
