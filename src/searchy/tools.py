@@ -40,20 +40,20 @@ def get_hash_paths(image_paths: list[Path]) -> dict[str, Path]:
 
 def _create_thumb(hash_path: tuple[str, Path]) -> tuple[Optional[str], str]:
     name = str(uuid.uuid4())
+    save_path = THUMB_DIR / f"{name}.jpg"
     hash, path = hash_path
 
     try:
         with Image.open(path) as img:
             img = img.convert("RGB")
-            save_path = THUMB_DIR / f"{name}.jpg"
 
             img.thumbnail((256, 256))
             img.save(save_path, "JPEG", quality=75)
 
-            return hash, name
+            return hash, save_path.name
     except UnidentifiedImageError as e:
         logger.error(f"Cannot create thumb for '{path}': {e}")
-        return None, name
+        return None, save_path.name
 
 
 def create_thumbs(hash_paths: dict[str, Path]) -> dict[str, str]:
@@ -65,16 +65,16 @@ def create_thumbs(hash_paths: dict[str, Path]) -> dict[str, str]:
     return thumb_hashes
 
 
-def delete_thumbs(image_paths: list[Path]) -> None:
-    for path in image_paths:
-        thumb = THUMB_DIR / f"{path.stem}.jpg"
-        thumb.unlink(missing_ok=True)
+def delete_thumbs(thumb_names: list[str]) -> None:
+    for name in thumb_names:
+        thumb_path = THUMB_DIR / name
+        thumb_path.unlink()
 
 
 def get_images_to_update(
     vk: valkey.Valkey,
     dir_path: Path,
-) -> tuple[dict[str, Path], list[str]]:
+) -> tuple[dict[str, Path], dict[str, str]]:
     paths = get_paths(dir_path)
     hash_paths = get_hash_paths(paths)
     input_hashes = set(hash_paths.keys())
@@ -85,6 +85,15 @@ def get_images_to_update(
     hashes_to_add = list(input_hashes - vk_hashes)
     hashes_to_delete = list(vk_hashes - input_hashes)
 
-    images_to_add = {h: hash_paths[h] for h in hashes_to_add}
+    pipe = vk.pipeline()
 
-    return images_to_add, hashes_to_delete
+    for hash in hashes_to_delete:
+        pipe.hget(f"image:{hash}", "thumb_name")
+
+    vk_thumb_names = pipe.execute()
+    vk_hash_paths = dict(zip(hashes_to_delete, vk_thumb_names))
+
+    images_to_add = {h: hash_paths[h] for h in hashes_to_add}
+    images_to_delete = {h: p.decode() for h, p in vk_hash_paths.items()}
+
+    return images_to_add, images_to_delete

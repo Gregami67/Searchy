@@ -43,7 +43,7 @@ class ImageFolderHandler(FileSystemEventHandler):
 
             embeds = self.searchy.create_embeds(list(hash_paths_to_add.values()))
             images_to_add = {
-                hash: path.stem for hash, path in hash_paths_to_add.items()
+                hash: path.name for hash, path in hash_paths_to_add.items()
             }
 
             self.searchy.save_embeds(images_to_add, hash_thumbs, embeds)
@@ -56,9 +56,10 @@ class ImageFolderHandler(FileSystemEventHandler):
         if not event.is_directory and self._is_image(event.src_path):
             logger.info(f"Detected deleted image: {event.src_path}")
 
-            delete_thumbs([Path(str(event.src_path))])
-            _, hashes = get_images_to_update(self.searchy.vk, self.dir_path)
-            self.searchy.delete_embeds(hashes)
+            _, hash_names_to_delete = get_images_to_update(self.searchy.vk, self.dir_path)
+
+            self.searchy.delete_embeds(list(hash_names_to_delete.keys()))
+            delete_thumbs(list(hash_names_to_delete.values()))
 
 
 class Searchy:
@@ -77,7 +78,7 @@ class Searchy:
         self.processor = CLIPProcessor.from_pretrained(model_name)
         self.device = device
 
-        hash_paths_to_add, hashes_to_delete = get_images_to_update(self.vk, dir_path)
+        hash_paths_to_add, hash_names_to_delete  = get_images_to_update(self.vk, dir_path)
         hash_thumbs = create_thumbs(hash_paths_to_add)
 
         if len(hash_paths_to_add) != len(hash_thumbs):
@@ -86,10 +87,10 @@ class Searchy:
             hash_paths_to_add = {h: hash_paths_to_add[h] for h in thumbs_set}
 
         embeds = self.create_embeds(list(hash_paths_to_add.values()))
-        images_to_add = {hash: path.stem for hash, path in hash_paths_to_add.items()}
+        images_to_add = {hash: path.name for hash, path in hash_paths_to_add.items()}
 
         self.save_embeds(images_to_add, hash_thumbs, embeds)
-        self.delete_embeds(hashes_to_delete)
+        self.delete_embeds(list(hash_names_to_delete.values()))
 
         logger.info("Searchy initialized")
 
