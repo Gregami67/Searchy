@@ -578,7 +578,7 @@
             let html = '';
             for (const path of imagePaths) {
                 html += '<div class="gallery-item">'
-                    + '<img src="thumbs/' + path + '.jpg' + '" alt="' + path + '">'
+                    + '<img src="thumbs/' + path + '" alt="' + path + '">'
                     + '</div>';
             }
             const gallery = document.createElement('div');
@@ -621,7 +621,7 @@
                     let html = '';
                     for (const path of data) {
                         html += '<div class="gallery-item">'
-                            + '<img src="thumbs/' + path + '.jpg' + '" alt="' + path + '">'
+                            + '<img src="thumbs/' + path + '" alt="' + path + '">'
                             + '</div>';
                     }
                     gallery.innerHTML = html;
