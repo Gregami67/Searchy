@@ -15,13 +15,15 @@ def get_paths(dir_path: Path) -> list[Path]:
     if not dir_path.is_dir():
         raise FileNotFoundError(f"Directory '{dir_path}' does not exist")
 
-    return sorted(
+    paths = sorted(
         [
             p
             for p in dir_path.iterdir()
             if p.is_file() and p.suffix.lower() in VALID_EXTENSIONS
         ]
     )
+    logger.debug(f"Found {len(paths)} files")
+    return paths
 
 
 def _get_hash_path(image_path: Path) -> tuple[Optional[str], Path]:
@@ -35,7 +37,11 @@ def _get_hash_path(image_path: Path) -> tuple[Optional[str], Path]:
 
 def get_hash_paths(image_paths: list[Path]) -> dict[str, Path]:
     with ThreadPoolExecutor() as executor:
-        return {h: p for h, p in executor.map(_get_hash_path, image_paths) if h}
+        hash_paths = {h: p for h, p in executor.map(_get_hash_path, image_paths) if h}
+
+    logger.debug(f"Created {len(hash_paths)} hashes")
+
+    return hash_paths
 
 
 def _create_thumb(hash_path: tuple[str, Path]) -> tuple[Optional[str], str]:
@@ -62,10 +68,12 @@ def create_thumbs(hash_paths: dict[str, Path]) -> dict[str, str]:
             h: n for h, n in executor.map(_create_thumb, hash_paths.items()) if h
         }
 
+    logger.debug(f"Created {len(thumb_hashes)} thumbs")
     return thumb_hashes
 
 
 def delete_thumbs(thumb_names: list[str]) -> None:
+    logger.debug(f"Found {len(thumb_names)} thumbs to delete")
     for name in thumb_names:
         thumb_path = THUMB_DIR / name
         thumb_path.unlink()
@@ -95,5 +103,8 @@ def get_images_to_update(
 
     images_to_add = {h: hash_paths[h] for h in hashes_to_add}
     images_to_delete = {h: p.decode() for h, p in vk_hash_paths.items()}
+
+    logger.debug(f"Found {len(images_to_add)} images to add")
+    logger.debug(f"Found {len(images_to_delete)} images to delete")
 
     return images_to_add, images_to_delete
