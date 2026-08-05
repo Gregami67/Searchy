@@ -38,8 +38,12 @@ class ImageFolderHandler(FileSystemEventHandler):
             hash_thumbs = create_thumbs(hash_paths_to_add)
 
             if len(hash_paths_to_add) != len(hash_thumbs):
-                thumbs_set = hash_paths_to_add.keys() - hash_thumbs.keys()
-                hash_paths_to_add = {h: hash_paths_to_add[h] for h in thumbs_set}
+                logger.info(
+                    "They are not the same size, keeping only successful thumbnails"
+                )
+                hash_paths_to_add = {
+                    h: hash_paths_to_add[h] for h in hash_thumbs.keys()
+                }
 
             embeds = self.searchy.create_embeds(list(hash_paths_to_add.values()))
             images_to_add = {
@@ -86,15 +90,16 @@ class Searchy:
         hash_thumbs = create_thumbs(hash_paths_to_add)
 
         if len(hash_paths_to_add) != len(hash_thumbs):
-            logger.info("They are not the same size")
-            thumbs_set = hash_paths_to_add.keys() - hash_thumbs.keys()
-            hash_paths_to_add = {h: hash_paths_to_add[h] for h in thumbs_set}
+            logger.info(
+                "They are not the same size, keeping only successful thumbnails"
+            )
+            hash_paths_to_add = {h: hash_paths_to_add[h] for h in hash_thumbs.keys()}
 
         embeds = self.create_embeds(list(hash_paths_to_add.values()))
         images_to_add = {hash: path.name for hash, path in hash_paths_to_add.items()}
 
         self.save_embeds(images_to_add, hash_thumbs, embeds)
-        self.delete_embeds(list(hash_names_to_delete.values()))
+        self.delete_embeds(list(hash_names_to_delete.keys()))
         delete_thumbs(list(hash_names_to_delete.values()))
 
         logger.info("Searchy initialized")
