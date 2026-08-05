@@ -95,6 +95,7 @@ class Searchy:
 
         self.save_embeds(images_to_add, hash_thumbs, embeds)
         self.delete_embeds(list(hash_names_to_delete.values()))
+        delete_thumbs(list(hash_names_to_delete.values()))
 
         logger.info("Searchy initialized")
 
