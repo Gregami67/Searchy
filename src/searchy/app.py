@@ -44,8 +44,8 @@ def search_by_text():
     query = data.get("query")
     page, count = _get_search_args()
 
-    results = searchy.search(page, count, query=query)
-    return results
+    original, thumb = searchy.search(page, count, query=query)
+    return {"original_name": original, "thumb_name": thumb}
 
 
 @app.route("/api/search/image", methods=["POST"])
@@ -58,8 +58,8 @@ def search_by_image():
     img = Image.open(image.stream).convert("RGB")
     page, count = _get_search_args()
 
-    results = searchy.search(page, count, image=img)
-    return results
+    original, thumb = searchy.search(page, count, image=img)
+    return {"original_name": original, "thumb_name": thumb}
 
 
 @app.route("/api/search/name", methods=["POST"])
@@ -68,8 +68,8 @@ def search_by_name():
     name = data.get("name")
     page, count = _get_search_args()
 
-    results = searchy.search_name(page, count, name)
-    return results
+    original, thumb = searchy.search_name(page, count, name)
+    return {"original_name": original, "thumb_name": thumb}
 
 
 @app.route("/images/<path:filename>")

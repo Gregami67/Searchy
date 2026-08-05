@@ -56,7 +56,9 @@ class ImageFolderHandler(FileSystemEventHandler):
         if not event.is_directory and self._is_image(event.src_path):
             logger.info(f"Detected deleted image: {event.src_path}")
 
-            _, hash_names_to_delete = get_images_to_update(self.searchy.vk, self.dir_path)
+            _, hash_names_to_delete = get_images_to_update(
+                self.searchy.vk, self.dir_path
+            )
 
             self.searchy.delete_embeds(list(hash_names_to_delete.keys()))
             delete_thumbs(list(hash_names_to_delete.values()))
@@ -78,7 +80,9 @@ class Searchy:
         self.processor = CLIPProcessor.from_pretrained(model_name)
         self.device = device
 
-        hash_paths_to_add, hash_names_to_delete  = get_images_to_update(self.vk, dir_path)
+        hash_paths_to_add, hash_names_to_delete = get_images_to_update(
+            self.vk, dir_path
+        )
         hash_thumbs = create_thumbs(hash_paths_to_add)
 
         if len(hash_paths_to_add) != len(hash_thumbs):
@@ -219,14 +223,14 @@ class Searchy:
         count: int,
         query: Optional[str] = None,
         image: Optional[Image.Image] = None,
-    ) -> list[str]:
+    ) -> tuple[list[str], list[str]]:
         logger.debug(f"Query to search is: {query}")
 
         if page <= 0:
             page = 1
 
         if bool(query) == bool(image):
-            return []
+            return [], []
 
         inputs = self.processor(
             images=image,
@@ -251,23 +255,29 @@ class Searchy:
         vector_bytes = embeds.tobytes()
         results = self._search_helper(page, count, vector_bytes)
 
-        return [result.thumb_name for result in results.docs]
+        return [result.original_name for result in results.docs], [
+            result.thumb_name for result in results.docs
+        ]
 
-    def search_name(self, page: int, count: int, name: str) -> list[str]:
+    def search_name(
+        self, page: int, count: int, name: str
+    ) -> tuple[list[str], list[str]]:
         logger.debug(f"Name to search is:{name}")
 
         query = Query(f"@thumb_name:{{{name}}}").no_content()
         result = self.vk.ft("idx:images").search(query)
 
         if not result.docs:
-            return []
+            return [], []
 
         image_hash = result.docs[0].id
         vector_bytes = self.vk.hget(image_hash, "embed")
 
         if not vector_bytes:
-            return []
+            return [], []
 
         results = self._search_helper(page, count, vector_bytes)
 
-        return [result.thumb_name for result in results.docs]
+        return [result.original_name for result in results.docs], [
+            result.thumb_name for result in results.docs
+        ]
