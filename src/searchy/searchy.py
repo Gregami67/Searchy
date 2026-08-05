@@ -28,7 +28,7 @@ class ImageFolderHandler(FileSystemEventHandler):
 
     def on_created(self, event: FileSystemEvent) -> None:
         if isinstance(event.src_path, bytes):
-            logger.debug("Found bytes: {event.src_path}")
+            logger.debug(f"Found bytes: {event.src_path}")
             return
 
         if not event.is_directory and self._is_image(event.src_path):
@@ -91,12 +91,12 @@ class Searchy:
 
         if len(hash_paths_to_add) != len(hash_thumbs):
             logger.info(
-                "They are not the same size, keeping only successful thumbnails"
+                f"They are not the same size, keeping only {len(hash_thumbs)} successful thumbnails"
             )
             hash_paths_to_add = {h: hash_paths_to_add[h] for h in hash_thumbs.keys()}
 
         embeds = self.create_embeds(list(hash_paths_to_add.values()))
-        images_to_add = {hash: path.name for hash, path in hash_paths_to_add.items()}
+        images_to_add = {h: path.name for h, path in hash_paths_to_add.items()}
 
         self.save_embeds(images_to_add, hash_thumbs, embeds)
         self.delete_embeds(list(hash_names_to_delete.keys()))
