@@ -46,9 +46,7 @@ class ImageFolderHandler(FileSystemEventHandler):
                 }
 
             embeds = self.searchy.create_embeds(list(hash_paths_to_add.values()))
-            images_to_add = {
-                hash: path.name for hash, path in hash_paths_to_add.items()
-            }
+            images_to_add = {h: p.name for h, p in hash_paths_to_add.items()}
 
             self.searchy.save_embeds(images_to_add, hash_thumbs, embeds)
 
@@ -96,7 +94,7 @@ class Searchy:
             hash_paths_to_add = {h: hash_paths_to_add[h] for h in hash_thumbs.keys()}
 
         embeds = self.create_embeds(list(hash_paths_to_add.values()))
-        images_to_add = {h: path.name for h, path in hash_paths_to_add.items()}
+        images_to_add = {h: p.name for h, p in hash_paths_to_add.items()}
 
         self.save_embeds(images_to_add, hash_thumbs, embeds)
         self.delete_embeds(list(hash_names_to_delete.keys()))

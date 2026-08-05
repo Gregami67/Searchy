@@ -87,8 +87,8 @@ def get_images_to_update(
     hash_paths = get_hash_paths(paths)
     input_hashes = set(hash_paths.keys())
 
-    vk_keys = {key.decode() for key in vk.scan_iter("image:*")}
-    vk_hashes = {key.removeprefix("image:") for key in vk_keys}
+    vk_keys = {k.decode() for k in vk.scan_iter("image:*")}
+    vk_hashes = {k.removeprefix("image:") for k in vk_keys}
 
     hashes_to_add = list(input_hashes - vk_hashes)
     hashes_to_delete = list(vk_hashes - input_hashes)
