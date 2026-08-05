@@ -441,8 +441,8 @@
 
                 const data = await res.json();
                 if (page === 1) {
-                    hasMore = data.length >= Searchy.COUNT;
-                    if (data.length === 0) {
+                    hasMore = data.original_name.length >= Searchy.COUNT;
+                    if (data.original_name.length === 0) {
                         showEmptyMessage(query);
                     } else {
                         showGallery(data);
@@ -545,8 +545,8 @@
                 }
 
                 const data = await res.json();
-                hasMore = data.length >= Searchy.COUNT;
-                if (data.length === 0) {
+                hasMore = data.original_name.length >= Searchy.COUNT;
+                if (data.original_name.length === 0) {
                     showEmptyMessage('uploaded image');
                 } else {
                     showGallery(data);
@@ -571,14 +571,14 @@
             hasMore = false;
         }
 
-        function showGallery(imagePaths) {
+        function showGallery(data) {
             clearGallery();
             resultsEl.style.display = 'block';
 
             let html = '';
-            for (const path of imagePaths) {
-                html += '<div class="gallery-item">'
-                    + '<img src="thumbs/' + path + '" alt="' + path + '">'
+            for (let i = 0; i < data.original_name.length; i++) {
+                html += '<div class="gallery-item" data-original="' + data.original_name[i] + '">'
+                    + '<img src="thumbs/' + data.thumb_name[i] + '" alt="' + data.thumb_name[i] + '">'
                     + '</div>';
             }
             const gallery = document.createElement('div');
@@ -613,15 +613,15 @@
                 }
 
                 const data = await res.json();
-                hasMore = data.length >= Searchy.COUNT;
+                hasMore = data.original_name.length >= Searchy.COUNT;
 
-                if (data.length > 0) {
+                if (data.original_name.length > 0) {
                     const gallery = document.createElement('div');
                     gallery.className = 'gallery';
                     let html = '';
-                    for (const path of data) {
-                        html += '<div class="gallery-item">'
-                            + '<img src="thumbs/' + path + '" alt="' + path + '">'
+                    for (let i = 0; i < data.original_name.length; i++) {
+                        html += '<div class="gallery-item" data-original="' + data.original_name[i] + '">'
+                            + '<img src="thumbs/' + data.thumb_name[i] + '" alt="' + data.thumb_name[i] + '">'
                             + '</div>';
                     }
                     gallery.innerHTML = html;
@@ -651,8 +651,8 @@
         const searchByNameBtn = document.getElementById('search-by-name-btn');
         let currentImageName = '';
 
-        function openViewer(src, imageName) {
-            viewerImg.src = src;
+        function openViewer(originalName, imageName) {
+            viewerImg.src = '/images/' + originalName;
             currentImageName = imageName || '';
             overlay.classList.add('active');
             document.body.style.overflow = 'hidden';
@@ -700,10 +700,9 @@
 
             // Overlay closed — check if clicking a gallery image
             const parentItem = e.target.closest('.gallery-item');
-            const clickedImg = e.target.matches('img') ? e.target : parentItem?.querySelector('img');
             
-            if (parentItem && clickedImg) {
-                openViewer(clickedImg.src, clickedImg.alt);
+            if (parentItem) {
+                openViewer(parentItem.dataset.original, parentItem.querySelector('img').alt);
                 return;
             }
         });
@@ -732,8 +731,8 @@
                 }
 
                 const data = await res.json();
-                hasMore = data.length >= Searchy.COUNT;
-                if (data.length === 0) {
+                hasMore = data.original_name.length >= Searchy.COUNT;
+                if (data.original_name.length === 0) {
                     showEmptyMessage(currentImageName);
                 } else {
                     showGallery(data);
