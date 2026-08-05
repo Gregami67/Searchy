@@ -10,4 +10,4 @@ def run_dev():
 def run_prod():
     import subprocess
 
-    subprocess.run(["gunicorn", "-b", "0.0.0.0:5000", "app:app"])
+    subprocess.run(["gunicorn", "-b", "0.0.0.0:5000", "searchy.app:app"])
