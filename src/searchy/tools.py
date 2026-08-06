@@ -76,7 +76,7 @@ def delete_thumbs(thumb_names: list[str]) -> None:
     logger.debug(f"Found {len(thumb_names)} thumbs to delete")
     for name in thumb_names:
         thumb_path = THUMB_DIR / name
-        thumb_path.unlink()
+        thumb_path.unlink(missing_ok=True)
 
 
 def get_images_to_update(

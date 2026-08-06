@@ -19,17 +19,15 @@ fields = [
 ]
 
 try:
-    vk.ft("idx:images").create_index(
-        fields=fields,
-        definition=IndexDefinition(
-            ["image:"],
-            index_type=IndexType.HASH,
-        ),
-    )
-    logger.info("Created images index")
-except valkey.ResponseError as e:
-    if "already exists" in str(e).lower():
-        logger.info("Image index already exists... Skipping")
-        pass
-    else:
-        raise e
+    vk.execute_command("FT.DROPINDEX", "idx:images")
+    logger.info("Dropped existing images index to rebuild vector index")
+except valkey.ResponseError:
+    pass
+
+vk.ft("idx:images").create_index(
+    fields=fields,
+    definition=IndexDefinition(
+        ["image:"],
+        index_type=IndexType.HASH,
+    ),
+)
