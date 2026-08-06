@@ -1,5 +1,4 @@
 import threading
-from pathlib import Path
 
 from flask import Flask, abort, render_template, request, send_from_directory
 from PIL import Image
@@ -8,11 +7,6 @@ from searchy import Searchy
 from searchy.config import IMAGE_COUNT, IMAGE_DIR, THUMB_DIR, WATCHDOG
 
 app = Flask(__name__)
-
-if not IMAGE_DIR:
-    raise ValueError("Environment variable 'IMAGE_DIR' is missing or not set")
-
-IMAGE_DIR = Path(IMAGE_DIR)
 searchy = Searchy(IMAGE_DIR)
 
 if WATCHDOG:
