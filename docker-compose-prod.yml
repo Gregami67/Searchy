@@ -10,14 +10,14 @@ services:
   searchy:
     build: .
     restart: unless-stopped
+    ports:
+      - 8000:5000
     env_file:
       - .env
     environment:
       - IMAGE_DIR=/app/images
       - THUMB_DIR=/app/thumbs
       - VALKEY_HOST=valkey
-    ports:
-      - 8000:5000
     volumes:
       - ${IMAGE_DIR}:/app/images:ro
       - model_thumbs:/app/thumbs
